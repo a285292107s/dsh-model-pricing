@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.invalid/dsh-model-pricing/provider_pricing.schema.json",
   "title": "Provider pricing override layer for dsh-model-pricing",
-  "description": "Per-provider (billing-channel) pricing over the model base table. Lets the same model be billed differently per channel — e.g. a subscription channel that does not meter tokens per-call (billing: subscription) vs. a metered API. A record priced as (provider, model) first looks up its provider here, then falls back to the model base table.",
+  "description": "Per-provider (billing-channel) pricing over the model base table. Each entry is resolved to an effective rate (the number the ledger should bill/value at) plus a billing class, so a consumer can separate REAL metered spend from SUBSCRIPTION value. A record priced as (provider, model) looks up its provider here first, falling back to the model base table when the provider has no entry.",
   "type": "object",
   "additionalProperties": false,
   "required": ["version", "updatedAt", "providers"],
@@ -28,7 +28,7 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["model", "billing"],
+              "required": ["model", "billing", "rate", "rateSource"],
               "properties": {
                 "model": {
                   "type": "string",
@@ -37,18 +37,24 @@
                 "billing": {
                   "type": "string",
                   "enum": ["metered", "subscription"],
-                  "description": "metered: billed per million tokens at the rates below (or the base table). subscription: included in a subscription/plan — no per-token charge to record."
+                  "description": "metered: a REAL per-token spend (official API or relay/reseller at its own rate). subscription: included in a plan — the rate below is the VALUE the plan creates (what it would cost metered), NOT actual spend. Consumers must keep these two classes apart when summing spend."
                 },
                 "rate": {
                   "type": "object",
-                  "description": "Optional metered rates that override the model base table for this (provider, model). Required when billing=metered and the channel's price differs from the base table.",
+                  "description": "Effective rate this channel resolves to (RMB / per million tokens). For billing=metered it is the charge to record; for billing=subscription it is the metered-equivalent value for the plan-value estimate (never actual spend). Resolved by the build from the base table (inherited or via ref) or taken verbatim from a hand-written override.",
                   "additionalProperties": false,
+                  "required": ["inputPerMillion", "outputPerMillion"],
                   "properties": {
                     "inputPerMillion": { "type": "number", "minimum": 0 },
                     "outputPerMillion": { "type": "number", "minimum": 0 },
                     "cacheReadPerMillion": { "type": "number", "minimum": 0 },
                     "cacheWritePerMillion": { "type": "number", "minimum": 0 }
                   }
+                },
+                "rateSource": {
+                  "type": "string",
+                  "enum": ["inherited", "ref", "explicit", "zero"],
+                  "description": "inherited: copied from the base table under this exact model string. ref: copied from the base table under the modelId named by the entry's ref. explicit: hand-written channel rate. zero: default ¥0 (unknown model string, awaiting the user)."
                 },
                 "note": { "type": "string", "description": "Human note (terms reference, caveat, date checked)." }
               }

@@ -80,9 +80,6 @@ function validateProviderSource(source) {
       if (entry.billing !== 'metered' && entry.billing !== 'subscription') {
         problems.push(`${id}: billing must be metered|subscription`)
       }
-      if (entry.billing === 'metered' && entry.rate === undefined) {
-        // Allowed: metered with no override inherits the base table rate.
-      }
       if (entry.rate !== undefined) {
         const r = entry.rate
         for (const key of ['inputPerMillion', 'outputPerMillion']) {
@@ -94,6 +91,25 @@ function validateProviderSource(source) {
     }
   }
   return problems
+}
+
+// Flatten the base table: exact model string (modelId + each alias) → the
+// model's base rates, so an entry can resolve by its recorded string or ref.
+function baseLookup(base) {
+  const lookup = new Map()
+  for (const model of base.models) {
+    const flat = {
+      inputPerMillion: model.inputCostPerMillion,
+      outputPerMillion: model.outputCostPerMillion,
+      ...(Number.isFinite(model.cacheReadCostPerMillion) ? { cacheReadPerMillion: model.cacheReadCostPerMillion } : {}),
+      ...(Number.isFinite(model.cacheCreationCostPerMillion) ? { cacheWritePerMillion: model.cacheCreationCostPerMillion } : {}),
+    }
+    lookup.set(model.modelId, flat)
+    for (const alias of model.aliases ?? []) {
+      if (alias !== '' && !lookup.has(alias)) lookup.set(alias, flat)
+    }
+  }
+  return lookup
 }
 
 async function main() {
@@ -112,7 +128,16 @@ async function main() {
   const baseOut = join(root, 'model_pricing.json')
   await writeFile(baseOut, JSON.stringify(base, null, 2) + '\n', 'utf8')
 
-  // 2) Provider layer compiled from the source facts.
+  // 2) Provider layer compiled from the source facts, each entry resolved to
+  //    an effective rate + source class:
+  //      - unknown: true  → default ¥0, waiting for the user (rateSource zero)
+  //      - entry.rate      → hand-written channel rate (rateSource explicit)
+  //      - entry.ref       → copy the base table under that modelId (ref)
+  //      - exact string in base table (or its alias) → inherit (inherited)
+  //      - billing metered / subscription both carry the SAME resolved rate;
+  //        the billing field is what tells a consumer metered spend from
+  //        subscription value.
+  const lookup = baseLookup(base)
   const providerOut = {
     version: source.version,
     updatedAt: nowUnix(),
@@ -123,7 +148,32 @@ async function main() {
       ...(p.label !== undefined ? { label: p.label } : {}),
       entries: p.entries.map((e) => {
         const out = { model: e.model, billing: e.billing }
-        if (e.rate !== undefined) out.rate = e.rate
+        let rate
+        let rateSource
+        if (e.unknown === true) {
+          rate = { inputPerMillion: 0, outputPerMillion: 0 }
+          rateSource = 'zero'
+        } else if (e.rate !== undefined) {
+          rate = {
+            inputPerMillion: e.rate.inputPerMillion,
+            outputPerMillion: e.rate.outputPerMillion,
+            ...(e.rate.cacheReadPerMillion !== undefined ? { cacheReadPerMillion: e.rate.cacheReadPerMillion } : {}),
+            ...(e.rate.cacheWritePerMillion !== undefined ? { cacheWritePerMillion: e.rate.cacheWritePerMillion } : {}),
+          }
+          rateSource = 'explicit'
+        } else {
+          const probe = e.ref !== undefined ? lookup.get(e.ref) : lookup.get(e.model)
+          if (probe !== undefined) {
+            rate = probe
+            rateSource = e.ref !== undefined ? 'ref' : 'inherited'
+          } else {
+            // Should not happen after the source is curated; fail loudly so a
+            // missing base price never silently becomes ¥0.
+            throw new Error(`${p.provider}/${e.model}: no rate and the base table has neither "${e.model}" nor "${e.ref ?? ''}" — add ref/rate or mark unknown:true`)
+          }
+        }
+        out.rate = rate
+        out.rateSource = rateSource
         if (e.note !== undefined && e.note !== '') out.note = e.note
         return out
       }),

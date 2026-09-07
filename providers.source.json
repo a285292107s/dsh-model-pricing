@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "updatedAt": 0,
   "providers": [
     {
@@ -9,12 +9,12 @@
         {
           "model": "deepseek-v4-flash",
           "billing": "metered",
-          "note": "官方开放平台按量。基准价表已有 deepseek-v4-flash（input 1.5 / output 4.5）。待核对官方最新价。"
+          "note": "官方开放平台按量。基准价表已有同名 modelId，直接继承官方价。"
         },
         {
           "model": "deepseek-v4-flash-vision-exp",
           "billing": "metered",
-          "note": "视觉实验模型，基准价表与 deepseek-v4-flash 同价。待核对。"
+          "note": "视觉实验模型，基准价表与 deepseek-v4-flash 同价，继承。"
         }
       ]
     },
@@ -25,12 +25,12 @@
         {
           "model": "deepseek-v4-flash",
           "billing": "subscription",
-          "note": "订阅通道，很可能不按 token 单独计费（内嵌额度）。待你确认条款。"
+          "note": "订阅通道。价值折算 = 官方按量价；非实际支出。"
         },
         {
           "model": "deepseek-v4-flash-vision-exp",
           "billing": "subscription",
-          "note": "同上。"
+          "note": "同上，视觉实验模型。"
         },
         {
           "model": "deepseek-v4-pro",
@@ -40,7 +40,8 @@
         {
           "model": "glm-5.3-flash",
           "billing": "subscription",
-          "note": "订阅内第三方模型，计量规则待确认。"
+          "ref": "glm-5.3-flash",
+          "note": "订阅内第三方模型；价值按智谱官方价折算。"
         },
         {
           "model": "mimo-v2.5",
@@ -56,12 +57,14 @@
         {
           "model": "deepseek/deepseek-v4-flash",
           "billing": "subscription",
-          "note": "订阅通道，模型串带 provider 前缀（基准表查不到裸串，正因此此前按 ¥0）。待确认是否订阅内计费。"
+          "ref": "deepseek-v4-flash",
+          "note": "订阅通道，模型串带 provider 前缀（基准表裸串查不到）；按官方 deepseek-v4-flash 折算价值。"
         },
         {
           "model": "z-ai/glm-5.3-flash",
           "billing": "subscription",
-          "note": "同上，前缀串。"
+          "ref": "glm-5.3-flash",
+          "note": "同上，按智谱 glm-5.3-flash 折算。"
         }
       ]
     },
@@ -72,7 +75,8 @@
         {
           "model": "deepseek/deepseek-v4-flash",
           "billing": "subscription",
-          "note": "前缀串，行数少（15）。"
+          "ref": "deepseek-v4-flash",
+          "note": "前缀串，行数少（15）；按官方价折算价值。"
         }
       ]
     },
@@ -83,7 +87,7 @@
         {
           "model": "glm-5.3-flash",
           "billing": "metered",
-          "note": "智谱开放平台按量。基准价表已有 glm-5.3-flash（input 0.8 / output 2.8）。"
+          "note": "智谱开放平台按量，继承基准价表 glm-5.3-flash。"
         }
       ]
     },
@@ -94,12 +98,14 @@
         {
           "model": "gpt-5.6-luna",
           "billing": "metered",
-          "note": "中转按量。基准价表已有 gpt-5.6-luna（input 1.4 / output 8.4）。中转加价待核对。"
+          "note": "中转按量。真实中转价待用户填写；当前占位 = 官方价。",
+          "placeholderOfOfficial": true
         },
         {
           "model": "grok-4.6",
           "billing": "metered",
-          "note": "基准价表已有 grok-4.6。"
+          "note": "中转按量。占位 = 官方价，待用户填真实价。",
+          "placeholderOfOfficial": true
         }
       ]
     },
@@ -110,7 +116,8 @@
         {
           "model": "dots3-note-prev",
           "billing": "metered",
-          "note": "模型串基准表查不到（dots3-note-prev 不在 feed）。需厂商/中转价。"
+          "note": "未知模型串：基准价表没有 dots3-note-prev，默认 ¥0，待用户填写。",
+          "unknown": true
         }
       ]
     }

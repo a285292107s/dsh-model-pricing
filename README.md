@@ -30,6 +30,30 @@ mirror it was extracted from, upstream version/updatedAt, built-at).
 A record priced as `(provider, model)` is resolved provider-first, falling back
 to the model base table when the provider has no entry.
 
+### Billing classes — keep them apart when summing
+
+Every provider entry carries a `billing` class plus its resolved `rate`
+(`rateSource` says where the rate came from):
+
+- **`metered`** — a REAL per-token spend: an official/relay API that actually
+  charges. Summing `metered` rows gives actual out-of-pocket spend.
+- **`subscription`** — the model is included in a plan; calls are not charged
+  per token. Its `rate` is the **metered-equivalent VALUE the subscription
+  creates** (what those calls would have cost at the official/metered rate),
+  **not actual spend**. A consumer MUST NOT mix `subscription` rows into an
+  actual-spend total; report them as subscription value instead.
+
+Three source conventions the build resolves automatically:
+
+1. **Official/direct channels** (`deepseek-official`, `zai`, …) — `metered`,
+   rate inherited from the base table (`rateSource: inherited`).
+2. **Relay/reseller channels** (`staryears`, …) — `metered`, rate currently a
+   **placeholder copied from the official price** (`rateSource: inherited`);
+   the user is expected to replace it with the relay's real rate (`rate` +
+   `rateSource: explicit`).
+3. **Unknown model strings** (e.g. `dots3-note-prev`) — default **¥0**
+   (`rateSource: zero`), waiting for the user to fill a real price.
+
 ## Layout
 
 ```
@@ -88,8 +112,10 @@ plugins:
 
 - [x] Repo + two-layer structure, schema, generator, provenance
 - [x] Base table extracted verbatim from the current synced mirror (169 models)
-- [x] Provider layer seeded with the ledger's real `(provider, model)` combos
-- [ ] Channel rates/billing confirmed against each provider's terms
-  (metered-vs-subscription + any channel-specific price is a FACT to be
-  verified per channel, never invented here)
-- [ ] dsh-tokbook consumer resolves `(provider, model)` provider-first
+- [x] Provider layer seeded with the ledger's real `(provider, model)` combos,
+      each resolved to an effective rate + `billing` class per your rules:
+      subscription channels value at official price; relays placeholder at
+      official price pending your real relay rate; unknown strings default ¥0
+- [ ] dsh-tokbook consumer resolves `(provider, model)` provider-first AND keeps
+      `metered` (actual spend) apart from `subscription` (plan value) when
+      summing — the cost UI will show them as two separate figures
