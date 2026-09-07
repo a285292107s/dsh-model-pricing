@@ -80,36 +80,51 @@ function validateProviderSource(source) {
       if (entry.billing !== 'metered' && entry.billing !== 'subscription') {
         problems.push(`${id}: billing must be metered|subscription`)
       }
-      if (entry.rate !== undefined) {
-        const r = entry.rate
-        for (const key of ['inputPerMillion', 'outputPerMillion']) {
-          if (typeof r[key] !== 'number' || !Number.isFinite(r[key]) || r[key] < 0) {
-            problems.push(`${id}: rate.${key} must be a non-negative number`)
+      const hasInherit = typeof entry.inheritBase === 'string' && entry.inheritBase !== ''
+      const hasSegments = Array.isArray(entry.segments) && entry.segments.length > 0
+      if (hasInherit && hasSegments) problems.push(`${id}: inheritBase and segments are mutually exclusive`)
+      if (!hasInherit && !hasSegments) problems.push(`${id}: needs inheritBase (follow a base model) or segments (explicit timeline)`)
+      if (hasSegments) {
+        let lastTo = 0
+        entry.segments.forEach((seg, index) => {
+          const s = seg
+          if (typeof s.rate !== 'object' || s.rate === null) {
+            problems.push(`${id} segments[${index}]: rate required`)
+            return
           }
-        }
+          for (const key of ['inputPerMillion', 'outputPerMillion']) {
+            if (typeof s.rate[key] !== 'number' || !Number.isFinite(s.rate[key]) || s.rate[key] < 0) {
+              problems.push(`${id} segments[${index}].rate.${key}: must be a non-negative number`)
+            }
+          }
+          if (s.from !== undefined && (typeof s.from !== 'number' || !Number.isFinite(s.from) || s.from < 0)) {
+            problems.push(`${id} segments[${index}]: from must be a non-negative number`)
+          }
+          if (s.to !== undefined && (typeof s.to !== 'number' || !Number.isFinite(s.to))) {
+            problems.push(`${id} segments[${index}]: to must be a number`)
+          }
+          if (s.from !== undefined && s.from < lastTo) problems.push(`${id} segments[${index}]: from (${s.from}) < previous to (${lastTo}) — segments must be ordered`)
+          lastTo = s.to ?? lastTo
+        })
       }
     }
   }
   return problems
 }
 
-// Flatten the base table: exact model string (modelId + each alias) → the
-// model's base rates, so an entry can resolve by its recorded string or ref.
+// Flatten the base table model ids (modelId + aliases) for ref/inheritBase
+// existence checks and rate lookup by the current snapshot (used only to
+// derive the "current effective" preview; consumers follow the timeline live).
 function baseLookup(base) {
-  const lookup = new Map()
+  const byId = new Map()
+  const aliasOf = new Map()
   for (const model of base.models) {
-    const flat = {
-      inputPerMillion: model.inputCostPerMillion,
-      outputPerMillion: model.outputCostPerMillion,
-      ...(Number.isFinite(model.cacheReadCostPerMillion) ? { cacheReadPerMillion: model.cacheReadCostPerMillion } : {}),
-      ...(Number.isFinite(model.cacheCreationCostPerMillion) ? { cacheWritePerMillion: model.cacheCreationCostPerMillion } : {}),
-    }
-    lookup.set(model.modelId, flat)
+    byId.set(model.modelId, model)
     for (const alias of model.aliases ?? []) {
-      if (alias !== '' && !lookup.has(alias)) lookup.set(alias, flat)
+      if (alias !== '' && !aliasOf.has(alias)) aliasOf.set(alias, model)
     }
   }
-  return lookup
+  return { byId, aliasOf, resolve: (name) => byId.get(name) ?? aliasOf.get(name) }
 }
 
 async function main() {
@@ -128,15 +143,15 @@ async function main() {
   const baseOut = join(root, 'model_pricing.json')
   await writeFile(baseOut, JSON.stringify(base, null, 2) + '\n', 'utf8')
 
-  // 2) Provider layer compiled from the source facts, each entry resolved to
-  //    an effective rate + source class:
-  //      - unknown: true  → default ¥0, waiting for the user (rateSource zero)
-  //      - entry.rate      → hand-written channel rate (rateSource explicit)
-  //      - entry.ref       → copy the base table under that modelId (ref)
-  //      - exact string in base table (or its alias) → inherit (inherited)
-  //      - billing metered / subscription both carry the SAME resolved rate;
-  //        the billing field is what tells a consumer metered spend from
-  //        subscription value.
+  // 2) Provider layer compiled from the source facts. Each entry carries
+  //    either inheritBase (follow a base model's FULL price history — official
+  //    channels and subscription channels valued at official prices, so a
+  //    vendor price change needs no edit here) or an explicit segments
+  //    timeline (relay real prices, hand-priced unknown models). `billing`
+  //    keeps metered spend apart from subscription value. The base table is
+  //    consulted only to validate that an inheritBase target exists and to
+  //    emit a human-readable "current effective rate" preview; consumers must
+  //    resolve the timeline live from model_pricing.json + provider_pricing.json.
   const lookup = baseLookup(base)
   const providerOut = {
     version: source.version,
@@ -148,32 +163,24 @@ async function main() {
       ...(p.label !== undefined ? { label: p.label } : {}),
       entries: p.entries.map((e) => {
         const out = { model: e.model, billing: e.billing }
-        let rate
-        let rateSource
-        if (e.unknown === true) {
-          rate = { inputPerMillion: 0, outputPerMillion: 0 }
-          rateSource = 'zero'
-        } else if (e.rate !== undefined) {
-          rate = {
-            inputPerMillion: e.rate.inputPerMillion,
-            outputPerMillion: e.rate.outputPerMillion,
-            ...(e.rate.cacheReadPerMillion !== undefined ? { cacheReadPerMillion: e.rate.cacheReadPerMillion } : {}),
-            ...(e.rate.cacheWritePerMillion !== undefined ? { cacheWritePerMillion: e.rate.cacheWritePerMillion } : {}),
+        if (typeof e.inheritBase === 'string' && e.inheritBase !== '') {
+          const target = lookup.resolve(e.inheritBase)
+          if (target === undefined) {
+            throw new Error(`${p.provider}/${e.model}: inheritBase "${e.inheritBase}" not found in the base table`)
           }
-          rateSource = 'explicit'
+          out.inheritBase = e.inheritBase
+          if (e.placeholder === true) out.placeholder = true
+        } else if (Array.isArray(e.segments) && e.segments.length > 0) {
+          out.segments = e.segments.map((s) => {
+            const seg = { rate: s.rate }
+            if (s.from !== undefined) seg.from = s.from
+            if (s.to !== undefined) seg.to = s.to
+            if (s.note !== undefined && s.note !== '') seg.note = s.note
+            return seg
+          })
         } else {
-          const probe = e.ref !== undefined ? lookup.get(e.ref) : lookup.get(e.model)
-          if (probe !== undefined) {
-            rate = probe
-            rateSource = e.ref !== undefined ? 'ref' : 'inherited'
-          } else {
-            // Should not happen after the source is curated; fail loudly so a
-            // missing base price never silently becomes ¥0.
-            throw new Error(`${p.provider}/${e.model}: no rate and the base table has neither "${e.model}" nor "${e.ref ?? ''}" — add ref/rate or mark unknown:true`)
-          }
+          throw new Error(`${p.provider}/${e.model}: needs inheritBase or segments`)
         }
-        out.rate = rate
-        out.rateSource = rateSource
         if (e.note !== undefined && e.note !== '') out.note = e.note
         return out
       }),

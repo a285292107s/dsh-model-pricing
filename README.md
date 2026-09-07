@@ -30,35 +30,57 @@ mirror it was extracted from, upstream version/updatedAt, built-at).
 A record priced as `(provider, model)` is resolved provider-first, falling back
 to the model base table when the provider has no entry.
 
+### Time dimension — prices change
+
+Both layers carry a **time dimension**. The base table's per-model entry already
+includes the vendor's own price history as `timeRules` (e.g. `deepseek-v4-flash`
+has 原价 → 每日峰谷 segments; `glm-5.3-flash` has a 限时5折 window). The provider
+layer resolves each entry to one of two mechanisms:
+
+- **`inheritBase: <modelId>`** — the channel follows the base model's FULL price
+  history (every past and current time rule, context tier, peak slot). Official
+  channels, subscription channels valued at official prices, and relay
+  placeholders all use this, so **when a vendor changes a price you update the
+  base table once and every inheriting channel re-prices its history correctly**.
+- **`segments[]`** — the channel has its OWN price timeline (a relay's real
+  prices once the user fills them in, or a hand-priced unknown model). Each
+  segment is `{ from?, to?, rate, note? }`; segments tile the full timeline, the
+  first defaults to `from: 0`, the last should be open-ended.
+
 ### Billing classes — keep them apart when summing
 
-Every provider entry carries a `billing` class plus its resolved `rate`
-(`rateSource` says where the rate came from):
+Every provider entry carries a `billing` class (independent of the timeline):
 
 - **`metered`** — a REAL per-token spend: an official/relay API that actually
   charges. Summing `metered` rows gives actual out-of-pocket spend.
 - **`subscription`** — the model is included in a plan; calls are not charged
-  per token. Its `rate` is the **metered-equivalent VALUE the subscription
-  creates** (what those calls would have cost at the official/metered rate),
-  **not actual spend**. A consumer MUST NOT mix `subscription` rows into an
-  actual-spend total; report them as subscription value instead.
+  per token. Its effective value equals what those calls would cost at the
+  official/metered rate — **not actual spend**. A consumer MUST NOT mix
+  `subscription` rows into an actual-spend total; report them as subscription
+  value instead.
 
 Three source conventions the build resolves automatically:
 
-1. **Official/direct channels** (`deepseek-official`, `zai`, …) — `metered`,
-   rate inherited from the base table (`rateSource: inherited`).
-2. **Relay/reseller channels** (`staryears`, …) — `metered`, rate currently a
-   **placeholder copied from the official price** (`rateSource: inherited`);
-   the user is expected to replace it with the relay's real rate (`rate` +
-   `rateSource: explicit`).
-3. **Unknown model strings** (e.g. `dots3-note-prev`) — default **¥0**
-   (`rateSource: zero`), waiting for the user to fill a real price.
+1. **Official/direct channels** (`deepseek-official`, `zai`, …) — `metered` +
+   `inheritBase`: real spend at the official price, following its history.
+2. **Relay/reseller channels** (`staryears`, …) — `metered`, currently
+   `inheritBase` with `placeholder: true` (a placeholder at the official
+   price). To set the relay's REAL price history, replace `inheritBase` with
+   `segments[]` (each segment carries the relay's own rate).
+3. **Subscription channels** (`opencode-go`, `commandcode`, …) — `subscription`
+   + `inheritBase`: the value they create is the official price (following its
+   history), never actual spend.
+4. **Unknown model strings** (e.g. `dots3-note-prev`) — `metered` + one
+   `segments` entry at **¥0**, waiting for the user to fill a real price
+   timeline.
 
 ## Layout
 
 ```
-model_pricing.json          generated — base table (verbatim from a local mirror)
-provider_pricing.json       generated — provider override layer (from source)
+model_pricing.json          generated — base table (verbatim from a local mirror;
+                            carries each model's timeRules price history)
+provider_pricing.json       generated — provider layer (per-entry inheritBase or
+                            an explicit segments timeline + billing class)
 providers.source.json       hand-edited — the per-channel FACT list (edit this)
 provider_pricing.schema.json            — schema of the provider layer
 scripts/build.mjs           generator: base table copy + provider layer compile
@@ -90,10 +112,11 @@ this script never invents model rates and never fetches the network.
   - `entries[].model` is the **exact model string as recorded** under that
     provider — which may carry a provider prefix (e.g.
     `deepseek/deepseek-v4-flash`) that the base table alone cannot match.
-  - `billing: metered` + no `rate` → inherit the base table rates.
-  - `billing: metered` + `rate` → override the base table for this channel.
-  - `billing: subscription` → no per-token charge to record (a subscription
-    plan, or the model is included in the channel's plan).
+  - `inheritBase: <modelId>` → follow the base model's full price history.
+  - `segments[]` → the channel's own price timeline (relay real prices,
+    hand-priced unknown models); tiles the full timeline with per-segment rates.
+  - `billing` is orthogonal: `metered` = real spend, `subscription` = plan
+    value at the resolved rates (never actual spend).
 
 ## Pointing dsh-tokbook at this mirror
 
@@ -112,10 +135,15 @@ plugins:
 
 - [x] Repo + two-layer structure, schema, generator, provenance
 - [x] Base table extracted verbatim from the current synced mirror (169 models)
-- [x] Provider layer seeded with the ledger's real `(provider, model)` combos,
-      each resolved to an effective rate + `billing` class per your rules:
-      subscription channels value at official price; relays placeholder at
-      official price pending your real relay rate; unknown strings default ¥0
-- [ ] dsh-tokbook consumer resolves `(provider, model)` provider-first AND keeps
+- [x] Provider layer seeded with the ledger's real `(provider, model)` combos:
+      official/direct channels follow official history (`inheritBase`),
+      subscription channels value at official history (`subscription` +
+      `inheritBase`), relay channels placeholder at official history
+      (`placeholder: true`), unknown strings default to a ¥0 `segments` entry
+- [x] Time dimension: provider entries follow the base table's `timeRules`
+      history or carry an explicit `segments` timeline, so a vendor price
+      change re-prices history without re-editing every channel
+- [ ] dsh-tokbook consumer resolves `(provider, model)` provider-first, follows
+      `inheritBase`/`segments` timelines per record timestamp, AND keeps
       `metered` (actual spend) apart from `subscription` (plan value) when
       summing — the cost UI will show them as two separate figures
