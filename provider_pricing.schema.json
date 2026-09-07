@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.invalid/dsh-model-pricing/provider_pricing.schema.json",
+  "title": "Provider pricing override layer for dsh-model-pricing",
+  "description": "Per-provider (billing-channel) pricing over the model base table. Lets the same model be billed differently per channel — e.g. a subscription channel that does not meter tokens per-call (billing: subscription) vs. a metered API. A record priced as (provider, model) first looks up its provider here, then falls back to the model base table.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "updatedAt", "providers"],
+  "properties": {
+    "version": { "type": "integer", "description": "Bump when pricing semantics change; consumers re-fetch on change." },
+    "updatedAt": { "type": "integer", "description": "Unix seconds." },
+    "currency": { "const": "RMB", "description": "All amounts are RMB per million tokens (metered rows)." },
+    "usdExchangeRate": { "type": "number", "description": "RMB per USD, for display of USD-denominated plans." },
+    "providers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["provider", "entries"],
+        "properties": {
+          "provider": {
+            "type": "string",
+            "description": "Provider route key as recorded in the ledger (e.g. deepseek-official, opencode-go, commandcode, zai, staryears)."
+          },
+          "label": { "type": "string", "description": "Display name of the channel." },
+          "entries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["model", "billing"],
+              "properties": {
+                "model": {
+                  "type": "string",
+                  "description": "Exact model string as recorded under this provider (may carry a provider prefix, e.g. deepseek/deepseek-v4-flash)."
+                },
+                "billing": {
+                  "type": "string",
+                  "enum": ["metered", "subscription"],
+                  "description": "metered: billed per million tokens at the rates below (or the base table). subscription: included in a subscription/plan — no per-token charge to record."
+                },
+                "rate": {
+                  "type": "object",
+                  "description": "Optional metered rates that override the model base table for this (provider, model). Required when billing=metered and the channel's price differs from the base table.",
+                  "additionalProperties": false,
+                  "properties": {
+                    "inputPerMillion": { "type": "number", "minimum": 0 },
+                    "outputPerMillion": { "type": "number", "minimum": 0 },
+                    "cacheReadPerMillion": { "type": "number", "minimum": 0 },
+                    "cacheWritePerMillion": { "type": "number", "minimum": 0 }
+                  }
+                },
+                "note": { "type": "string", "description": "Human note (terms reference, caveat, date checked)." }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

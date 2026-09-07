@@ -1,0 +1,118 @@
+{
+  "version": 1,
+  "updatedAt": 0,
+  "providers": [
+    {
+      "provider": "deepseek-official",
+      "label": "DeepSeek 官方 API",
+      "entries": [
+        {
+          "model": "deepseek-v4-flash",
+          "billing": "metered",
+          "note": "官方开放平台按量。基准价表已有 deepseek-v4-flash（input 1.5 / output 4.5）。待核对官方最新价。"
+        },
+        {
+          "model": "deepseek-v4-flash-vision-exp",
+          "billing": "metered",
+          "note": "视觉实验模型，基准价表与 deepseek-v4-flash 同价。待核对。"
+        }
+      ]
+    },
+    {
+      "provider": "opencode-go",
+      "label": "OpenCode Go 订阅",
+      "entries": [
+        {
+          "model": "deepseek-v4-flash",
+          "billing": "subscription",
+          "note": "订阅通道，很可能不按 token 单独计费（内嵌额度）。待你确认条款。"
+        },
+        {
+          "model": "deepseek-v4-flash-vision-exp",
+          "billing": "subscription",
+          "note": "同上。"
+        },
+        {
+          "model": "deepseek-v4-pro",
+          "billing": "subscription",
+          "note": "同上。"
+        },
+        {
+          "model": "glm-5.3-flash",
+          "billing": "subscription",
+          "note": "订阅内第三方模型，计量规则待确认。"
+        },
+        {
+          "model": "mimo-v2.5",
+          "billing": "subscription",
+          "note": "订阅内第三方模型。"
+        }
+      ]
+    },
+    {
+      "provider": "commandcode",
+      "label": "Command Code GOAT 订阅",
+      "entries": [
+        {
+          "model": "deepseek/deepseek-v4-flash",
+          "billing": "subscription",
+          "note": "订阅通道，模型串带 provider 前缀（基准表查不到裸串，正因此此前按 ¥0）。待确认是否订阅内计费。"
+        },
+        {
+          "model": "z-ai/glm-5.3-flash",
+          "billing": "subscription",
+          "note": "同上，前缀串。"
+        }
+      ]
+    },
+    {
+      "provider": "modlens-commandcode",
+      "label": "modlens 经 Command Code",
+      "entries": [
+        {
+          "model": "deepseek/deepseek-v4-flash",
+          "billing": "subscription",
+          "note": "前缀串，行数少（15）。"
+        }
+      ]
+    },
+    {
+      "provider": "zai",
+      "label": "Z.ai（智谱直连）",
+      "entries": [
+        {
+          "model": "glm-5.3-flash",
+          "billing": "metered",
+          "note": "智谱开放平台按量。基准价表已有 glm-5.3-flash（input 0.8 / output 2.8）。"
+        }
+      ]
+    },
+    {
+      "provider": "staryears",
+      "label": "StarYears 中转",
+      "entries": [
+        {
+          "model": "gpt-5.6-luna",
+          "billing": "metered",
+          "note": "中转按量。基准价表已有 gpt-5.6-luna（input 1.4 / output 8.4）。中转加价待核对。"
+        },
+        {
+          "model": "grok-4.6",
+          "billing": "metered",
+          "note": "基准价表已有 grok-4.6。"
+        }
+      ]
+    },
+    {
+      "provider": "dots-ai",
+      "label": "Dots AI",
+      "entries": [
+        {
+          "model": "dots3-note-prev",
+          "billing": "metered",
+          "note": "模型串基准表查不到（dots3-note-prev 不在 feed）。需厂商/中转价。"
+        }
+      ]
+    }
+  ]
+}
