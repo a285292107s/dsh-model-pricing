@@ -71,6 +71,244 @@
           "billing": "subscription",
           "inheritBase": "glm-5.3-flash",
           "note": "同上，按智谱 glm-5.3-flash 跟随。"
+        },
+        {
+          "model": "google/gemini-3.8-flash",
+          "billing": "subscription",
+          "inheritBase": "gemini-3.8-flash",
+          "note": "GOAT 计划模型；CC id google/gemini-3.8-flash；价值按官方 gemini-3.8-flash 跟随。"
+        },
+        {
+          "model": "meta/muse-spark-1.3",
+          "billing": "subscription",
+          "inheritBase": "muse-spark-1.3",
+          "note": "GOAT 计划模型；CC id meta/muse-spark-1.3；价值按官方 muse-spark-1.3 跟随。"
+        },
+        {
+          "model": "qwen/qwen3.8-max-0902",
+          "billing": "subscription",
+          "inheritBase": "qwen3.8-max",
+          "note": "GOAT 计划模型；CC id Qwen/Qwen3.8-Max-0902；基础表 alias 归入 qwen3.8-max，价值跟随之。"
+        },
+        {
+          "model": "tencent/hy4-preview",
+          "billing": "subscription",
+          "inheritBase": "hy4",
+          "note": "GOAT 计划模型；CC id tencent/hy4-preview；基础表 alias hy4-preview → hy4，价值跟随 hy4。"
+        },
+        {
+          "model": "meituan/longcat-2.0:free",
+          "billing": "subscription",
+          "segments": [
+            { "from": 0, "rate": { "inputPerMillion": 0, "outputPerMillion": 0 }, "note": "Command Code 免费 deal：请求计费 $0，订阅价值为 0。" }
+          ],
+          "note": "GOAT 计划免费模型（CC id meituan/LongCat-2.0:free，计费 $0）。不用官方价，价值按 ¥0。"
+        },
+        {
+          "model": "qwen/qwen3.8-flash",
+          "billing": "subscription",
+          "inheritBase": "qwen3.8-flash",
+          "note": "GOAT 计划模型；CC id Qwen/Qwen3.8-Flash；价值按官方 qwen3.8-flash 跟随。"
+        },
+        {
+          "model": "deepseek/deepseek-v4-flash-vision-exp",
+          "billing": "subscription",
+          "inheritBase": "deepseek-v4-flash-vision-exp",
+          "note": "GOAT 计划模型；CC id deepseek/deepseek-v4-flash-vision-exp；价值按官方同 id 跟随。"
+        },
+        {
+          "model": "z-ai/glm-5.3",
+          "billing": "subscription",
+          "inheritBase": "glm-5.3",
+          "note": "GOAT 计划模型；CC id z-ai/glm-5.3；价值按官方 glm-5.3 跟随。"
+        },
+        {
+          "model": "qwen/qwen3.8-27b",
+          "billing": "subscription",
+          "inheritBase": "qwen3.8-27b",
+          "note": "GOAT 计划模型；CC id Qwen/Qwen3.8-27B；价值按官方 qwen3.8-27b 跟随。"
+        },
+        {
+          "model": "deepseek/deepseek-v4-pro",
+          "billing": "subscription",
+          "inheritBase": "deepseek-v4-pro",
+          "note": "GOAT 计划模型；CC id deepseek/deepseek-v4-pro；价值按官方 deepseek-v4-pro 跟随。"
+        },
+        {
+          "model": "google/gemini-3.7-flash",
+          "billing": "subscription",
+          "inheritBase": "gemini-3.7-flash",
+          "note": "GOAT 计划模型；CC id google/gemini-3.7-flash；价值按官方 gemini-3.7-flash 跟随。"
+        },
+        {
+          "model": "xai/grok-4.6",
+          "billing": "subscription",
+          "inheritBase": "grok-4.6",
+          "note": "GOAT 计划模型；CC id xai/grok-4.6；价值按官方 grok-4.6 跟随。"
+        },
+        {
+          "model": "meta/muse-spark-1.2",
+          "billing": "subscription",
+          "inheritBase": "muse-spark-1.2",
+          "note": "GOAT 计划模型；CC id meta/muse-spark-1.2；价值按官方 muse-spark-1.2 跟随。"
+        },
+        {
+          "model": "qwen/qwen3.8-max",
+          "billing": "subscription",
+          "inheritBase": "qwen3.8-max",
+          "note": "GOAT 计划模型；CC id Qwen/Qwen3.8-Max；价值按官方 qwen3.8-max 跟随。"
+        },
+        {
+          "model": "thinkingmachines/inkling-small",
+          "billing": "subscription",
+          "inheritBase": "inkling-small",
+          "note": "GOAT 计划模型；CC id thinkingmachines/inkling-small；价值按官方 inkling-small 跟随。"
+        },
+        {
+          "model": "qwen/qwen3.7-flash",
+          "billing": "subscription",
+          "inheritBase": "qwen3.7-flash",
+          "note": "GOAT 计划模型；CC id Qwen/Qwen3.7-Flash；价值按官方 qwen3.7-flash 跟随。"
+        },
+        {
+          "model": "poolside/laguna-s-2.1-free",
+          "billing": "subscription",
+          "segments": [
+            { "from": 0, "rate": { "inputPerMillion": 0, "outputPerMillion": 0 }, "note": "Command Code 免费 deal：请求计费 $0，订阅价值为 0。" }
+          ],
+          "note": "GOAT 计划免费模型（CC id poolside/laguna-s-2.1-free，计费 $0）。不用官方价，价值按 ¥0。"
+        },
+        {
+          "model": "thinkingmachines/inkling",
+          "billing": "subscription",
+          "inheritBase": "inkling",
+          "note": "GOAT 计划模型；CC id thinkingmachines/inkling；价值按官方 inkling 跟随。"
+        },
+        {
+          "model": "moonshotai/kimi-k3",
+          "billing": "subscription",
+          "inheritBase": "kimi-k3",
+          "note": "GOAT 计划模型；CC id moonshotai/Kimi-K3；价值按官方 kimi-k3 跟随。"
+        },
+        {
+          "model": "gpt-5.6-luna",
+          "billing": "subscription",
+          "inheritBase": "gpt-5.6-luna",
+          "note": "GOAT 计划模型；CC id gpt-5.6-luna（无厂商前缀）；价值按官方 gpt-5.6-luna 跟随。"
+        },
+        {
+          "model": "gpt-5.6-sol",
+          "billing": "subscription",
+          "inheritBase": "gpt-5.6-sol",
+          "note": "GOAT 计划模型；CC id gpt-5.6-sol（无厂商前缀）；价值按官方 gpt-5.6-sol 跟随。"
+        },
+        {
+          "model": "xai/grok-4.5",
+          "billing": "subscription",
+          "inheritBase": "grok-4.5",
+          "note": "GOAT 计划模型；CC id xai/grok-4.5；价值按官方 grok-4.5 跟随。"
+        },
+        {
+          "model": "tencent/hy3-paid",
+          "billing": "subscription",
+          "inheritBase": "hy3",
+          "note": "GOAT 计划模型；CC id tencent/hy3-paid；基础表 id hy3（alias hy3-free），价值跟随 hy3。"
+        },
+        {
+          "model": "z-ai/glm-5.2",
+          "billing": "subscription",
+          "inheritBase": "glm-5.2",
+          "note": "GOAT 计划模型；CC id z-ai/glm-5.2；价值按官方 glm-5.2 跟随。"
+        },
+        {
+          "model": "moonshotai/kimi-k2.7-code",
+          "billing": "subscription",
+          "inheritBase": "Kimi-K2.7-Code",
+          "note": "GOAT 计划模型；CC id moonshotai/Kimi-K2.7-Code；基础表 id Kimi-K2.7-Code，价值跟随之。"
+        },
+        {
+          "model": "minimaxai/minimax-m3",
+          "billing": "subscription",
+          "inheritBase": "MiniMax-M3",
+          "note": "GOAT 计划模型；CC id MiniMaxAI/MiniMax-M3；基础表 id MiniMax-M3（含 -50% deal 段），价值跟随之。"
+        },
+        {
+          "model": "qwen/qwen3.7-plus",
+          "billing": "subscription",
+          "inheritBase": "qwen3.7-plus",
+          "note": "GOAT 计划模型；CC id Qwen/Qwen3.7-Plus；价值按官方 qwen3.7-plus 跟随。"
+        },
+        {
+          "model": "stepfun/step-3.7-flash",
+          "billing": "subscription",
+          "inheritBase": "step-3.7-flash",
+          "note": "GOAT 计划模型；CC id stepfun/Step-3.7-Flash；价值按官方 step-3.7-flash 跟随。"
+        },
+        {
+          "model": "xiaomi/mimo-v2.5",
+          "billing": "subscription",
+          "inheritBase": "mimo-v2.5",
+          "note": "GOAT 计划模型；CC id xiaomi/mimo-v2.5；价值按官方 mimo-v2.5 跟随。"
+        },
+        {
+          "model": "xiaomi/mimo-v2.5-pro",
+          "billing": "subscription",
+          "inheritBase": "mimo-v2.5-pro",
+          "note": "GOAT 计划模型；CC id xiaomi/mimo-v2.5-pro；价值按官方 mimo-v2.5-pro 跟随。"
+        },
+        {
+          "model": "qwen/qwen3.7-max",
+          "billing": "subscription",
+          "inheritBase": "qwen3.7-max",
+          "note": "GOAT 计划模型；CC id Qwen/Qwen3.7-Max；价值按官方 qwen3.7-max 跟随。"
+        },
+        {
+          "model": "stepfun/step-3.5-flash",
+          "billing": "subscription",
+          "inheritBase": "step-3.5-flash",
+          "note": "GOAT 计划模型；CC id stepfun/Step-3.5-Flash；价值按官方 step-3.5-flash 跟随。"
+        },
+        {
+          "model": "z-ai/glm-5.1",
+          "billing": "subscription",
+          "inheritBase": "glm-5.1",
+          "note": "GOAT 计划模型；CC id z-ai/glm-5.1；价值按官方 glm-5.1 跟随。"
+        },
+        {
+          "model": "minimaxai/minimax-m2.7",
+          "billing": "subscription",
+          "inheritBase": "MiniMax-M2.7",
+          "note": "GOAT 计划模型；CC id MiniMaxAI/MiniMax-M2.7；基础表 id MiniMax-M2.7，价值跟随之。"
+        },
+        {
+          "model": "qwen/qwen3.6-plus",
+          "billing": "subscription",
+          "inheritBase": "qwen3.6-plus",
+          "note": "GOAT 计划模型；CC id Qwen/Qwen3.6-Plus；价值按官方 qwen3.6-plus 跟随。"
+        },
+        {
+          "model": "moonshotai/kimi-k2.6",
+          "billing": "subscription",
+          "inheritBase": "kimi-k2.6",
+          "note": "GOAT 计划模型；CC id moonshotai/Kimi-K2.6；价值按官方 kimi-k2.6 跟随。"
+        },
+        {
+          "model": "z-ai/glm-5",
+          "billing": "subscription",
+          "inheritBase": "glm-5",
+          "note": "GOAT 计划模型；CC id z-ai/glm-5；价值按官方 glm-5 跟随。"
+        },
+        {
+          "model": "moonshotai/kimi-k2.5",
+          "billing": "subscription",
+          "inheritBase": "kimi-k2.5",
+          "note": "GOAT 计划模型；CC id moonshotai/Kimi-K2.5；价值按官方 kimi-k2.5 跟随。"
+        },
+        {
+          "model": "minimaxai/minimax-m2.5",
+          "billing": "subscription",
+          "inheritBase": "MiniMax-M2.5",
+          "note": "GOAT 计划模型；CC id MiniMaxAI/MiniMax-M2.5；基础表 id MiniMax-M2.5，价值跟随之。"
         }
       ]
     },

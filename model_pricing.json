@@ -1,6 +1,6 @@
 {
-  "version": 80,
-  "updatedAt": 1788763101,
+  "version": 81,
+  "updatedAt": 1788777480,
   "currency": "RMB",
   "usdExchangeRate": 7,
   "models": [
@@ -961,12 +961,24 @@
     },
     {
       "modelId": "gemini-3.8-flash",
-      "inputCostPerMillion": 5.25,
-      "outputCostPerMillion": 24.5,
-      "cacheReadCostPerMillion": 0.525,
+      "inputCostPerMillion": 10.5,
+      "outputCostPerMillion": 52.5,
+      "cacheReadCostPerMillion": 1.05,
       "cacheCreationCostPerMillion": 0,
       "contextTiers": [],
-      "timeRules": [],
+      "timeRules": [
+        {
+          "label": "限时优惠价",
+          "startTime": 0,
+          "endTime": 1798761599,
+          "inputCostPerMillion": 5.25,
+          "outputCostPerMillion": 26.25,
+          "cacheReadCostPerMillion": 0.525,
+          "cacheCreationCostPerMillion": 0,
+          "dailySlots": [],
+          "contextTiers": []
+        }
+      ],
       "aliases": [
         "gemini-3.8-flash-high",
         "gemini-3.8-flash-low",
@@ -1103,7 +1115,9 @@
       "dailySlots": [],
       "contextTiers": [],
       "timeRules": [],
-      "aliases": [],
+      "aliases": [
+        "glm-latest"
+      ],
       "family": "glm"
     },
     {
@@ -1127,7 +1141,9 @@
           "contextTiers": []
         }
       ],
-      "aliases": [],
+      "aliases": [
+        "glm-flash-latest"
+      ],
       "family": "glm"
     },
     {
@@ -1449,7 +1465,8 @@
       "aliases": [
         "gpt-5.6-sol-high",
         "gpt-5.6-sol-medium",
-        "gpt-5.6-sol-low"
+        "gpt-5.6-sol-low",
+        "gpt-daybreak-blue-latest"
       ],
       "family": "gpt"
     },
@@ -2491,10 +2508,13 @@
       "inputCostPerMillion": 12,
       "outputCostPerMillion": 36,
       "cacheReadCostPerMillion": 1.5,
-      "cacheCreationCostPerMillion": 0,
+      "cacheCreationCostPerMillion": 17.5,
       "contextTiers": [],
       "timeRules": [],
-      "aliases": [],
+      "aliases": [
+        "qwen3.8-max-0902",
+        "qwen3.8-2.4t-a95b"
+      ],
       "family": "qwen"
     },
     {
@@ -2506,7 +2526,9 @@
       "dailySlots": [],
       "contextTiers": [],
       "timeRules": [],
-      "aliases": [],
+      "aliases": [
+        "qwen3.8-flash-next"
+      ],
       "family": "qwen"
     },
     {
@@ -2606,6 +2628,229 @@
       "timeRules": [],
       "aliases": [],
       "family": "other"
+    },
+    {
+      "modelId": "muse-glimmer-30b",
+      "inputCostPerMillion": 2.1,
+      "outputCostPerMillion": 7.7,
+      "cacheReadCostPerMillion": 0.28,
+      "cacheCreationCostPerMillion": 0,
+      "dailySlots": [],
+      "contextTiers": [],
+      "timeRules": [],
+      "aliases": [
+        "meta/muse-glimmer-30b"
+      ],
+      "family": "meta"
+    },
+    {
+      "modelId": "muse-spark-1.1",
+      "inputCostPerMillion": 8.75,
+      "outputCostPerMillion": 29.75,
+      "cacheReadCostPerMillion": 0,
+      "cacheCreationCostPerMillion": 0,
+      "dailySlots": [],
+      "contextTiers": [],
+      "timeRules": [],
+      "aliases": [
+        "meta/muse-spark-1.1"
+      ],
+      "family": "meta"
+    },
+    {
+      "modelId": "qwen3.7-flash",
+      "inputCostPerMillion": 0.21,
+      "outputCostPerMillion": 0.91,
+      "cacheReadCostPerMillion": 0.042,
+      "cacheCreationCostPerMillion": 0.266,
+      "dailySlots": [],
+      "contextTiers": [
+        {
+          "threshold": 32000,
+          "inputCostPerMillion": 0.7,
+          "outputCostPerMillion": 2.8,
+          "cacheReadCostPerMillion": 0.119,
+          "cacheCreationCostPerMillion": 0.721
+        },
+        {
+          "threshold": 256000,
+          "inputCostPerMillion": 1.4,
+          "outputCostPerMillion": 5.6,
+          "cacheReadCostPerMillion": 0.231,
+          "cacheCreationCostPerMillion": 1.442
+        }
+      ],
+      "timeRules": [],
+      "aliases": [
+        "qwen/qwen3.7-flash"
+      ],
+      "family": "qwen"
+    },
+    {
+      "modelId": "nemotron-3.5-lightning",
+      "inputCostPerMillion": 0.56,
+      "outputCostPerMillion": 1.4,
+      "cacheReadCostPerMillion": 0,
+      "cacheCreationCostPerMillion": 0,
+      "dailySlots": [],
+      "contextTiers": [],
+      "timeRules": [],
+      "aliases": [
+        "nvidia/nemotron-3.5-lightning"
+      ],
+      "family": "other"
+    },
+    {
+      "modelId": "inception-mercury-2.5-preview",
+      "inputCostPerMillion": 0.28,
+      "outputCostPerMillion": 1.05,
+      "cacheReadCostPerMillion": 0,
+      "cacheCreationCostPerMillion": 0,
+      "dailySlots": [],
+      "contextTiers": [],
+      "timeRules": [],
+      "aliases": [
+        "inception/mercury-2.5-preview"
+      ],
+      "family": "other"
+    },
+    {
+      "modelId": "solar-pro-4",
+      "inputCostPerMillion": 0.21,
+      "outputCostPerMillion": 0.84,
+      "cacheReadCostPerMillion": 0,
+      "cacheCreationCostPerMillion": 0,
+      "dailySlots": [],
+      "contextTiers": [],
+      "timeRules": [],
+      "aliases": [
+        "upstage/solar-pro4"
+      ],
+      "family": "other"
+    },
+    {
+      "modelId": "sakana-namazu",
+      "inputCostPerMillion": 6.65,
+      "outputCostPerMillion": 28,
+      "cacheReadCostPerMillion": 0,
+      "cacheCreationCostPerMillion": 0,
+      "dailySlots": [],
+      "contextTiers": [],
+      "timeRules": [],
+      "aliases": [
+        "sakana/sakana-namazu"
+      ],
+      "family": "other"
+    },
+    {
+      "modelId": "poolside-laguna-s-2.1",
+      "inputCostPerMillion": 0.63,
+      "outputCostPerMillion": 1.26,
+      "cacheReadCostPerMillion": 0,
+      "cacheCreationCostPerMillion": 0,
+      "dailySlots": [],
+      "contextTiers": [],
+      "timeRules": [],
+      "aliases": [
+        "poolside/laguna-s-2.1"
+      ],
+      "family": "other"
+    },
+    {
+      "modelId": "poolside-laguna-xs-2.1",
+      "inputCostPerMillion": 0.42,
+      "outputCostPerMillion": 0.84,
+      "cacheReadCostPerMillion": 0,
+      "cacheCreationCostPerMillion": 0,
+      "dailySlots": [],
+      "contextTiers": [],
+      "timeRules": [],
+      "aliases": [
+        "poolside/laguna-xs-2.1"
+      ],
+      "family": "other"
+    },
+    {
+      "modelId": "inkling",
+      "inputCostPerMillion": 7,
+      "outputCostPerMillion": 28.35,
+      "cacheReadCostPerMillion": 0,
+      "cacheCreationCostPerMillion": 0,
+      "dailySlots": [],
+      "contextTiers": [],
+      "timeRules": [],
+      "aliases": [
+        "thinkingmachines/inkling"
+      ],
+      "family": "other"
+    },
+    {
+      "modelId": "inkling-small",
+      "inputCostPerMillion": 3.15,
+      "outputCostPerMillion": 8.4,
+      "cacheReadCostPerMillion": 0,
+      "cacheCreationCostPerMillion": 0,
+      "dailySlots": [],
+      "contextTiers": [],
+      "timeRules": [],
+      "aliases": [
+        "thinkingmachines/inkling-small"
+      ],
+      "family": "other"
+    },
+    {
+      "modelId": "ling-3.0-flash",
+      "inputCostPerMillion": 0.147,
+      "outputCostPerMillion": 0.441,
+      "cacheReadCostPerMillion": 0,
+      "cacheCreationCostPerMillion": 0,
+      "dailySlots": [],
+      "contextTiers": [],
+      "timeRules": [],
+      "aliases": [
+        "inclusionai/ling-3.0-flash"
+      ],
+      "family": "other"
+    },
+    {
+      "modelId": "ling-3.0-flash-fin",
+      "inputCostPerMillion": 0.42,
+      "outputCostPerMillion": 1.26,
+      "cacheReadCostPerMillion": 0,
+      "cacheCreationCostPerMillion": 0,
+      "dailySlots": [],
+      "contextTiers": [],
+      "timeRules": [],
+      "aliases": [
+        "inclusionai/ling-3.0-flash-fin"
+      ],
+      "family": "other"
+    },
+    {
+      "modelId": "kat-coder-pro-v2.5",
+      "inputCostPerMillion": 5.18,
+      "outputCostPerMillion": 20.72,
+      "cacheReadCostPerMillion": 0,
+      "cacheCreationCostPerMillion": 0,
+      "dailySlots": [],
+      "contextTiers": [],
+      "timeRules": [],
+      "aliases": [
+        "kwaipilot/kat-coder-pro-v2.5"
+      ],
+      "family": "other"
+    },
+    {
+      "modelId": "chat-latest",
+      "inputCostPerMillion": 35,
+      "outputCostPerMillion": 210,
+      "cacheReadCostPerMillion": 3.5,
+      "cacheCreationCostPerMillion": 0,
+      "dailySlots": [],
+      "contextTiers": [],
+      "timeRules": [],
+      "aliases": [],
+      "family": "gpt"
     }
   ],
   "families": [
