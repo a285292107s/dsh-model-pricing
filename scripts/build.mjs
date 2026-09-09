@@ -15,10 +15,10 @@
 // Usage: node scripts/build.mjs [path-to-pricing.ccsa.json]
 //   (defaults to $DSH_HOME/tokbook/pricing.ccsa.json or ~/.dsh/tokbook/…)
 //
-// The build never fetches the network; it reads the local mirror if present,
-// else carries over a committed fallback (see ./fallback/). All edits to
-// pricing facts happen in providers.source.json; the base table is refreshed
-// by re-running against a newer local mirror.
+// The build never fetches the network; it reads the first usable local mirror
+// at the given path or the default candidates, and exits with an error if none
+// is found. All edits to pricing facts happen in providers.source.json; the
+// base table is refreshed by re-running against a newer local mirror.
 
 import { mkdir, readFile, writeFile, access } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'

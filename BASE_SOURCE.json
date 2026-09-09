@@ -1,7 +1,7 @@
 {
   "baseTableSource": "local tokbook mirror (pricing.ccsa.json)",
-  "baseVersion": 81,
-  "baseUpdatedAt": 1788777480,
-  "models": 184,
-  "builtAt": 1788846882
+  "baseVersion": 84,
+  "baseUpdatedAt": 1788919670,
+  "models": 185,
+  "builtAt": 1788942624
 }

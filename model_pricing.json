@@ -1,6 +1,6 @@
 {
-  "version": 81,
-  "updatedAt": 1788777480,
+  "version": 84,
+  "updatedAt": 1788919670,
   "currency": "RMB",
   "usdExchangeRate": 7,
   "models": [
@@ -447,9 +447,9 @@
     },
     {
       "modelId": "deepseek-v4-flash",
-      "inputCostPerMillion": 1.5,
-      "outputCostPerMillion": 4.5,
-      "cacheReadCostPerMillion": 0.05,
+      "inputCostPerMillion": 1,
+      "outputCostPerMillion": 4,
+      "cacheReadCostPerMillion": 0.02,
       "cacheCreationCostPerMillion": 0,
       "dailySlots": [
         {
@@ -464,9 +464,9 @@
               "endMinute": 1080
             }
           ],
-          "inputCostPerMillion": 3,
-          "outputCostPerMillion": 9,
-          "cacheReadCostPerMillion": 0.1,
+          "inputCostPerMillion": 2,
+          "outputCostPerMillion": 8,
+          "cacheReadCostPerMillion": 0.04,
           "cacheCreationCostPerMillion": 0,
           "daysOfWeek": [
             1,
@@ -518,6 +518,42 @@
             }
           ],
           "contextTiers": []
+        },
+        {
+          "label": "2026-09-10 调价前",
+          "startTime": 1787414400,
+          "endTime": 1789012799,
+          "inputCostPerMillion": 1.5,
+          "outputCostPerMillion": 4.5,
+          "cacheReadCostPerMillion": 0.05,
+          "cacheCreationCostPerMillion": 0,
+          "dailySlots": [
+            {
+              "label": "工作日高峰时段",
+              "windows": [
+                {
+                  "startMinute": 540,
+                  "endMinute": 720
+                },
+                {
+                  "startMinute": 840,
+                  "endMinute": 1080
+                }
+              ],
+              "inputCostPerMillion": 3,
+              "outputCostPerMillion": 9,
+              "cacheReadCostPerMillion": 0.1,
+              "cacheCreationCostPerMillion": 0,
+              "daysOfWeek": [
+                1,
+                2,
+                3,
+                4,
+                5
+              ]
+            }
+          ],
+          "contextTiers": []
         }
       ],
       "aliases": [
@@ -529,9 +565,9 @@
     },
     {
       "modelId": "deepseek-v4-flash-vision-exp",
-      "inputCostPerMillion": 1.5,
-      "outputCostPerMillion": 4.5,
-      "cacheReadCostPerMillion": 0.05,
+      "inputCostPerMillion": 1,
+      "outputCostPerMillion": 4,
+      "cacheReadCostPerMillion": 0.02,
       "cacheCreationCostPerMillion": 0,
       "dailySlots": [
         {
@@ -546,9 +582,9 @@
               "endMinute": 1080
             }
           ],
-          "inputCostPerMillion": 3,
-          "outputCostPerMillion": 9,
-          "cacheReadCostPerMillion": 0.1,
+          "inputCostPerMillion": 2,
+          "outputCostPerMillion": 8,
+          "cacheReadCostPerMillion": 0.04,
           "cacheCreationCostPerMillion": 0,
           "daysOfWeek": [
             1,
@@ -589,9 +625,121 @@
             }
           ],
           "contextTiers": []
+        },
+        {
+          "label": "2026-09-10 调价前",
+          "startTime": 1787414400,
+          "endTime": 1789012799,
+          "inputCostPerMillion": 1.5,
+          "outputCostPerMillion": 4.5,
+          "cacheReadCostPerMillion": 0.05,
+          "cacheCreationCostPerMillion": 0,
+          "dailySlots": [
+            {
+              "label": "工作日高峰时段",
+              "windows": [
+                {
+                  "startMinute": 540,
+                  "endMinute": 720
+                },
+                {
+                  "startMinute": 840,
+                  "endMinute": 1080
+                }
+              ],
+              "inputCostPerMillion": 3,
+              "outputCostPerMillion": 9,
+              "cacheReadCostPerMillion": 0.1,
+              "cacheCreationCostPerMillion": 0,
+              "daysOfWeek": [
+                1,
+                2,
+                3,
+                4,
+                5
+              ]
+            }
+          ],
+          "contextTiers": []
         }
       ],
       "aliases": [],
+      "family": "deepseek"
+    },
+    {
+      "modelId": "deepseek-v4.1-flash",
+      "inputCostPerMillion": 1,
+      "outputCostPerMillion": 4,
+      "cacheReadCostPerMillion": 0.02,
+      "cacheCreationCostPerMillion": 0,
+      "dailySlots": [
+        {
+          "label": "工作日高峰时段",
+          "windows": [
+            {
+              "startMinute": 540,
+              "endMinute": 720
+            },
+            {
+              "startMinute": 840,
+              "endMinute": 1080
+            }
+          ],
+          "inputCostPerMillion": 2,
+          "outputCostPerMillion": 8,
+          "cacheReadCostPerMillion": 0.04,
+          "cacheCreationCostPerMillion": 0,
+          "daysOfWeek": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        }
+      ],
+      "contextTiers": [],
+      "timeRules": [
+        {
+          "label": "2026-09-10 调价前",
+          "startTime": 1787414400,
+          "endTime": 1789012799,
+          "inputCostPerMillion": 1.5,
+          "outputCostPerMillion": 4.5,
+          "cacheReadCostPerMillion": 0.05,
+          "cacheCreationCostPerMillion": 0,
+          "dailySlots": [
+            {
+              "label": "工作日高峰时段",
+              "windows": [
+                {
+                  "startMinute": 540,
+                  "endMinute": 720
+                },
+                {
+                  "startMinute": 840,
+                  "endMinute": 1080
+                }
+              ],
+              "inputCostPerMillion": 3,
+              "outputCostPerMillion": 9,
+              "cacheReadCostPerMillion": 0.1,
+              "cacheCreationCostPerMillion": 0,
+              "daysOfWeek": [
+                1,
+                2,
+                3,
+                4,
+                5
+              ]
+            }
+          ],
+          "contextTiers": []
+        }
+      ],
+      "aliases": [
+        "deepseek-v4.1-flash-expires-on-0910"
+      ],
       "family": "deepseek"
     },
     {
