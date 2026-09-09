@@ -10,7 +10,7 @@ The repo keeps two layers separate:
 | File | Layer | Shape | Consumer |
 |---|---|---|---|
 | `model_pricing.json` | **Model base table** (RMB / per-million-token) | Identical to the maintained upstream feed (`modelId` + 4 rates + time rules / context tiers / peak slots + aliases) | Existing model-only consumers keep working unchanged |
-| `provider_pricing.json` | **Per-provider override layer** | `providers[]` → `entries[]` (`model`, `billing: metered\|subscription`, optional `rate`) | The (provider, model) keyed pricing path of dsh-tokbook |
+| `provider_pricing.json` | **Per-provider override layer** | `providers[]` (`provider`, `billing: metered\|subscription`, `entries[]`) → entries (`model`, `inheritBase` \| `segments`) | The (provider, model) keyed pricing path of dsh-tokbook |
 
 `BASE_SOURCE.json` records provenance of the current base table (which local
 mirror it was extracted from, upstream version/updatedAt, built-at).
@@ -49,7 +49,9 @@ layer resolves each entry to one of two mechanisms:
 
 ### Billing classes — keep them apart when summing
 
-Every provider entry carries a `billing` class (independent of the timeline):
+Billing is a property of the **channel**, so `providers[].billing` carries it and
+applies to every entry of that channel; an entry may override it for a mixed
+channel:
 
 - **`metered`** — a REAL per-token spend: an official/relay API that actually
   charges. Summing `metered` rows gives actual out-of-pocket spend.
@@ -59,7 +61,7 @@ Every provider entry carries a `billing` class (independent of the timeline):
   `subscription` rows into an actual-spend total; report them as subscription
   value instead.
 
-Three source conventions the build resolves automatically:
+Four source conventions the build resolves automatically:
 
 1. **Official/direct channels** (`deepseek-official`, `zai`, …) — `metered` +
    `inheritBase`: real spend at the official price, following its history.
@@ -70,17 +72,19 @@ Three source conventions the build resolves automatically:
 3. **Subscription channels** (`opencode-go`, `commandcode`, …) — `subscription`
    + `inheritBase`: the value they create is the official price (following its
    history), never actual spend.
-4. **Unknown model strings** (e.g. `dots3-note-prev`) — `metered` + one
-   `segments` entry at **¥0**, waiting for the user to fill a real price
-   timeline.
+4. **Unknown model strings** (e.g. `dots3-note-prev`) — get **no entry at all**.
+   The consumer then reports the string as *unpriced* (¥0, listed in its
+   `unpricedModels`), which is honest about not knowing the price; a ¥0
+   `segments` entry would instead look like a free model. Add the channel entry
+   (with `segments`) once a real price timeline is known.
 
 ## Layout
 
 ```
 model_pricing.json          generated — base table (verbatim from a local mirror;
                             carries each model's timeRules price history)
-provider_pricing.json       generated — provider layer (per-entry inheritBase or
-                            an explicit segments timeline + billing class)
+provider_pricing.json       generated — provider layer (channel billing + per-entry
+                            inheritBase or an explicit segments timeline)
 providers.source.json       hand-edited — the per-channel FACT list (edit this)
 provider_pricing.schema.json            — schema of the provider layer
 scripts/build.mjs           generator: base table copy + provider layer compile
@@ -99,7 +103,9 @@ node scripts/build.mjs /path/to/pricing.ccsa.json   # or an explicit mirror
 ```
 
 The base table is refreshed only by re-running against a newer synced mirror —
-this script never invents model rates and never fetches the network.
+this script never invents model rates and never fetches the network. A rebuild
+with no source change leaves every artifact byte-identical (the timestamps mean
+"last content change"), so `git status` shows only real edits.
 
 ## Schema
 
@@ -108,42 +114,48 @@ this script never invents model rates and never fetches the network.
 - `provider_pricing.json`: see `provider_pricing.schema.json`. Core rules:
   - `providers[].provider` matches the provider route key **as recorded in the
     ledger** (`deepseek-official`, `opencode-go`, `commandcode`, `zai`,
-    `staryears`, `dots-ai`, `modlens-commandcode`, …).
+    `staryears`, `modlens-commandcode`, …).
+  - `providers[].billing` is the **channel's** billing nature and applies to
+    every entry; an entry-level `billing` overrides it for a mixed channel.
+    `metered` = real spend, `subscription` = plan value at the resolved rates
+    (never actual spend).
   - `entries[].model` is the **exact model string as recorded** under that
     provider — which may carry a provider prefix (e.g.
     `deepseek/deepseek-v4-flash`) that the base table alone cannot match.
-  - `inheritBase: <modelId>` → follow the base model's full price history.
-  - `segments[]` → the channel's own price timeline (relay real prices,
-    hand-priced unknown models); tiles the full timeline with per-segment rates.
-  - `billing` is orthogonal: `metered` = real spend, `subscription` = plan
-    value at the resolved rates (never actual spend).
+  - exactly one of `inheritBase: <modelId>` (follow the base model's full price
+    history) or `segments[]` (the channel's own timeline, first segment from 0,
+    last open-ended, flat rates only — no peak windows or context tiers).
+  - `placeholder: true` marks a relay entry whose inherited official price is
+    standing in until real `segments` are filled in.
 
 ## Pointing dsh-tokbook at this mirror
 
-Until dsh-tokbook resolves provider-first, you can already point its model-level
-sync at this repo's base table (or at the provider layer once the consumer
-supports it) via the plugin config:
+dsh-tokbook already resolves `(provider, model)` provider-first, and this repo's
+provider layer is its default `pricingProviderUrl`. To use a fork or a
+self-hosted raw URL, point both layers explicitly:
 
 ```yml
 plugins:
   tokbook:
     pricingUrl: https://raw.githubusercontent.com/<you>/dsh-model-pricing/master/model_pricing.json
+    pricingProviderUrl: https://raw.githubusercontent.com/<you>/dsh-model-pricing/master/provider_pricing.json
     # pricingRegion: domestic   # or a self-hosted gitee raw URL
 ```
 
 ## Status
 
 - [x] Repo + two-layer structure, schema, generator, provenance
-- [x] Base table extracted verbatim from the current synced mirror (169 models)
+- [x] Base table extracted verbatim from the current synced mirror (185 models)
 - [x] Provider layer seeded with the ledger's real `(provider, model)` combos:
       official/direct channels follow official history (`inheritBase`),
-      subscription channels value at official history (`subscription` +
-      `inheritBase`), relay channels placeholder at official history
-      (`placeholder: true`), unknown strings default to a ¥0 `segments` entry
+      subscription channels value at official history (channel `billing:
+      subscription` + `inheritBase`), relay channels placeholder at official
+      history (`placeholder: true`), unknown strings get no entry (reported as
+      unpriced by the consumer)
 - [x] Time dimension: provider entries follow the base table's `timeRules`
       history or carry an explicit `segments` timeline, so a vendor price
       change re-prices history without re-editing every channel
-- [ ] dsh-tokbook consumer resolves `(provider, model)` provider-first, follows
+- [x] dsh-tokbook consumer resolves `(provider, model)` provider-first, follows
       `inheritBase`/`segments` timelines per record timestamp, AND keeps
       `metered` (actual spend) apart from `subscription` (plan value) when
-      summing — the cost UI will show them as two separate figures
+      summing — the cost UI shows them as two separate figures

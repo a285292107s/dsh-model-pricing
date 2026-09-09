@@ -2,33 +2,38 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.invalid/dsh-model-pricing/provider_pricing.schema.json",
   "title": "Provider pricing override layer for dsh-model-pricing",
-  "description": "Per-provider (billing-channel) pricing over the model base table, WITH a time dimension. Each entry resolves to one of: (a) a reference to a base-table model whose full price history is inherited (the channel tracks the official/vendor price, including past price changes), or (b) an explicit timeline of [from, to) rate segments (the channel has its own price history, e.g. a relay or an unknown model the user prices by hand). Every entry carries a billing class so a consumer can separate REAL metered spend from SUBSCRIPTION value.",
+  "description": "Per-provider (billing-channel) pricing over the model base table, WITH a time dimension. Each entry resolves to one of: (a) a reference to a base-table model whose full price history is inherited (the channel tracks the official/vendor price, including past price changes), or (b) an explicit timeline of [from, to) rate segments (the channel has its own price history, e.g. a relay or an unknown model the user prices by hand). Billing nature belongs to the CHANNEL (`providers[].billing`) and is the default for every entry of that channel; an entry may override it. This keeps REAL metered spend apart from SUBSCRIPTION value.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "updatedAt", "providers"],
+  "required": ["version", "updatedAt", "currency", "providers"],
   "properties": {
     "version": { "type": "integer", "description": "Bump when pricing semantics change; consumers re-fetch on change." },
-    "updatedAt": { "type": "integer", "description": "Unix seconds." },
-    "currency": { "const": "RMB", "description": "All amounts are RMB per million tokens (metered rows)." },
-    "usdExchangeRate": { "type": "number", "description": "RMB per USD, for display of USD-denominated plans." },
+    "updatedAt": { "type": "integer", "description": "Unix seconds of the last content change (a no-op rebuild keeps it)." },
+    "currency": { "const": "RMB", "description": "All amounts are RMB per million tokens. Required: consumers reject a feed that is not RMB." },
+    "usdExchangeRate": { "type": "number", "description": "RMB per USD, copied from the base table for display of USD-denominated plans." },
     "providers": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["provider", "entries"],
+        "required": ["provider", "billing", "entries"],
         "properties": {
           "provider": {
             "type": "string",
             "description": "Provider route key as recorded in the ledger (e.g. deepseek-official, opencode-go, commandcode, zai, staryears)."
           },
           "label": { "type": "string", "description": "Display name of the channel." },
+          "billing": {
+            "type": "string",
+            "enum": ["metered", "subscription"],
+            "description": "The CHANNEL's billing nature, the default for every entry below. metered: a REAL per-token spend (official API or relay/reseller at its own rate). subscription: included in a plan — the value it creates equals the metered-equivalent rates, NOT actual spend. Consumers must keep these apart when summing."
+          },
           "entries": {
             "type": "array",
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["model", "billing"],
+              "required": ["model"],
               "properties": {
                 "model": {
                   "type": "string",
@@ -37,7 +42,7 @@
                 "billing": {
                   "type": "string",
                   "enum": ["metered", "subscription"],
-                  "description": "metered: a REAL per-token spend (official API or relay/reseller at its own rate). subscription: included in a plan — the value it creates equals the metered-equivalent rates, NOT actual spend. Consumers must keep these apart when summing."
+                  "description": "Per-entry override of the channel's billing nature, for a mixed channel. Omit to inherit `providers[].billing`."
                 },
                 "inheritBase": {
                   "type": "string",
@@ -45,14 +50,15 @@
                 },
                 "segments": {
                   "type": "array",
-                  "description": "An explicit price history when the channel has its OWN rates (a relay's real prices, a hand-priced unknown model). Mutually exclusive with inheritBase. Segments cover the full timeline: the first should start at 0 (or an explicit from), the last should have no to (open-ended).",
+                  "minItems": 1,
+                  "description": "An explicit price history when the channel has its OWN rates (a relay's real prices). Mutually exclusive with inheritBase. Segments tile the full timeline: the first starts at 0 (or omits `from`), the last is open-ended (omits `to`). Rates are FLAT per segment — a channel's own peak windows / context tiers cannot be expressed; use inheritBase to follow the official rule set instead.",
                   "items": {
                     "type": "object",
                     "additionalProperties": false,
                     "required": ["rate"],
                     "properties": {
-                      "from": { "type": "integer", "description": "Segment start, Unix seconds. Defaults to the previous segment's to (or 0 for the first)." },
-                      "to": { "type": "integer", "description": "Segment end (exclusive), Unix seconds. Omit on the last segment (open-ended)." },
+                      "from": { "type": "integer", "description": "Segment start, inclusive, Unix seconds. Defaults to the previous segment's to (or 0 for the first)." },
+                      "to": { "type": "integer", "description": "Segment end, EXCLUSIVE, Unix seconds. Omit on the last segment (open-ended)." },
                       "rate": {
                         "type": "object",
                         "additionalProperties": false,
@@ -68,8 +74,16 @@
                     }
                   }
                 },
+                "placeholder": {
+                  "type": "boolean",
+                  "description": "Relay placeholder: the inherited base price stands in until the user fills real segments. Only meaningful with inheritBase."
+                },
                 "note": { "type": "string", "description": "Human note (terms reference, caveat, date checked)." }
-              }
+              },
+              "oneOf": [
+                { "required": ["inheritBase"] },
+                { "required": ["segments"] }
+              ]
             }
           }
         }

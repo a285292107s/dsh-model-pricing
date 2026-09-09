@@ -3,9 +3,9 @@
 dsh-model-pricing 是 dsh-tokbook 记账本的**自托管价格镜像**,带显式的 per-provider
 (计费通道)维度:同一模型经不同通道可以按量计费或属于订阅。仓库维护两层数据 ——
 `model_pricing.json`(模型基础价目表:照抄上游社区 feed,含每个模型的 `timeRules`
-调价史、context 档位等)与 `provider_pricing.json`(per-provider 覆盖层:每个条目
-`inheritBase` 跟随基础表某模型的完整价格史,或用 `segments[]` 表达通道自己的时间线,
-并携带独立于时间线的 `billing` 计费类别)。
+调价史、context 档位等)与 `provider_pricing.json`(per-provider 覆盖层:每个 provider 组
+携带**通道级** `billing` 计费类别,条目 `inheritBase` 跟随基础表某模型的完整价格史,
+或用 `segments[]` 表达通道自己的时间线)。
 
 本文件让 agent 的行为与本仓库的实际运作方式对齐。更具体的指示优先;动手前先读
 README 与本文件提到的文件。
@@ -41,8 +41,9 @@ README 与本文件提到的文件。
 | `node scripts/build.mjs <path>` | 指定本地 mirror(如刚重新同步、更新的 `pricing.ccsa.json`) |
 
 脚本只读本地、**从不联网**;找不到「含非空 `models`」的可用 mirror 就报错退出。
-它在落盘前会先校验 `providers.source.json`(形状、billing 枚举、重复条目、segments
-顺序、`inheritBase` 目标是否能在基础表中解析),有问题则列明并以非零码退出。
+它在落盘前会先校验 `providers.source.json`(形状、通道 `billing` 枚举、重复条目、
+segments 顺序与首段/末段铺满、`inheritBase` 目标是否能在基础表中解析),有问题则列明
+并以非零码退出。内容没变的生成物不重写,所以空跑一次 build 后 `git status` 保持干净。
 
 ## 改什么 / 不改什么
 
@@ -67,12 +68,14 @@ README 与本文件提到的文件。
   匹配不了。改 key/字符串前先核对 dsh-tokbook 账本里的真实记录。
 - 每条 entry 二选一(互斥,校验会拦):`inheritBase: <modelId>`(跟随基础表该模型的
   **完整**价格史——官方通道、按官方价折算的订阅通道、placeholder 中继都用它)或
-  `segments[]`(通道自带时间线:首段默认 `from: 0`,末段开放式;中继真实价、
-  手填的未知模型用)。
-- `billing` 独立于时间线:`metered` = 真实按量花费(可计入实际支出);
-  `subscription` = 订阅内的价值折算——**绝不可混入实际支出合计**。
+  `segments[]`(通道自带时间线:首段从 0 起、末段开放式,build 强制;只支持平铺价,
+  峰谷/上下文档位表达不了——那类通道用 `inheritBase`)。
+- `billing` 挂在 **provider 组**上(通道属性,覆盖其全部条目);条目级 `billing` 只用于
+  混合通道的覆盖。`metered` = 真实按量花费(可计入实际支出);`subscription` = 订阅内的
+  价值折算——**绝不可混入实际支出合计**。
 - `inheritBase` 目标必须在当前基础表(或其 aliases)解析得到,否则 build 直接抛错。
-  全新/未知模型字符串按既有约定给 `metered` + 一条 ¥0 `segments`,等你填真实价格史。
+  全新/未知模型字符串**不建条目**:消费方会把它列为未定价(¥0),比一条 ¥0 `segments`
+  更诚实(后者看起来像免费模型)。知道真实价格史后再新增该 provider 组 + `segments`。
 
 ## 背景文档
 
