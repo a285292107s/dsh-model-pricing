@@ -67,7 +67,7 @@ segments 顺序与首段/末段铺满、`inheritBase` 目标是否能在基础�
   字符串**——可能带 provider 前缀(如 `deepseek/deepseek-v4-flash`),基础表本身
   匹配不了。改 key/字符串前先核对 dsh-tokbook 账本里的真实记录。
 - **`modlens-*`（含 `deepseek-modlens`）是包装 id，不是独立通道**：客户端插件给上游路由
-  mint 的合成孪生——同上游 operator、同 `billing`、同 `inheritBase` 目标，绝不单独定价；
+  mint 的合成孪生——同上游通道方、同 `billing`、同 `inheritBase` 目标，绝不单独定价；
   只要账本里还有该 id 的记录就保留条目（丢了会让那些历史调用变成未定价）。镜像层没有
   route alias 字段，包装路由靠**复制上游条目**表达；条目多到复制不划算时再考虑加别名字段
   （需消费方配合）。术语界定见 README 的「术语」一节。

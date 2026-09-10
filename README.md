@@ -22,17 +22,17 @@ updatedAt、构建时间）。
 |---|---|---|
 | **模型厂商**（model vendor / 上游厂商 / 模型方） | 开发并拥有模型，定义官方费率与调价史的一方 | `model_pricing.json`（基础表） |
 | **通道**（channel / provider / 计费通道） | 模型被接入并被计费的一条路径 —— `provider` route key | `provider_pricing.json` / `providers.source.json` |
-| **通道运营方**（channel operator） | 运营某条通道的一方：官方通道就是厂商自己，其余是第三方 | `providers[].label` |
+| **通道方**（channel operator） | 提供并结算这条通道路由的一方：官方通道就是厂商自己，其余是第三方 | `providers[].label` |
 | **官方通道**（official / first-party / 直连） | 厂商自营的按量 API（`deepseek-official`、`zai`） | `metered` + `inheritBase` |
 | **中转 / 转售商**（reseller / relay） | 第三方按量通道，用自己的价、可能带加价（`staryears`） | `metered`；拿到真实中转价后改 `segments[]` |
-| **订阅套餐**（subscription plan / 套餐运营方） | 模型访问被打包进套餐，调用不按 token 计费（`opencode-go`、`commandcode`） | `subscription` + `inheritBase` |
+| **订阅套餐**（subscription plan） | 模型访问被打包进套餐，调用不按 token 计费（`opencode-go`、`commandcode`） | `subscription` + `inheritBase` |
 | **包装路由**（wrapper / alias route） | 客户端插件为既有通道 mint 的合成孪生，形如 `<插件>-<provider>`（`modlens-commandcode`、`deepseek-modlens`） | 沿用被包装通道的 `billing` 类别与 `inheritBase` 目标 |
 
 由此有两条必须守住的结论：
 
 - **`provider` 从不等于模型厂商。** 一条 `(provider, model)` 条目说明的是「一条通道 +
   一个模型」；模型由谁开发是另一个问题，其官方费率只存在于基础表。
-- **角色属于通道，不属于公司。** `deepseek-official` 是 DeepSeek 自己兼任通道运营方；
+- **角色属于通道，不属于公司。** `deepseek-official` 这条通道由 DeepSeek 自己提供；
   `commandcode` 销售 DeepSeek 系列模型但并不因此成为 DeepSeek。同一家公司可以同时
   占两个角色，所以说的时候要指明角色，而不是只报公司名。
 
@@ -94,7 +94,7 @@ provider 层的条目则解析为两种机制之一：
 modlens 视觉桥就是这么做的：它把 `modlens-<provider>`（`deepseek-official` 则是
 `deepseek-modlens`）注册成该 provider 的合成孪生，带相同的模型 id，每次调用都回落给
 上游 —— 它是给**自己看不了图**的模型搭的桥；有视觉能力的模型被刻意排除在包装之外。
-所以 `modlens-commandcode` 与 `commandcode` 是同一个运营方、同一个套餐、同一批模型，
+所以 `modlens-commandcode` 与 `commandcode` 背后是同一个通道方、同一个套餐、同一批模型，
 只有记录下来的 id 不同。
 
 对本仓库而言这意味着：
