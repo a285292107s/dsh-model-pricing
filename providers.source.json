@@ -313,6 +313,20 @@
           "placeholder": true
         }
       ]
+    },
+    {
+      "provider": "dots-ai",
+      "label": "小红书（dots-ai）",
+      "billing": "metered",
+      "entries": [
+        {
+          "model": "dots3-note-prev",
+          "segments": [
+            { "from": 0, "rate": { "inputPerMillion": 0, "outputPerMillion": 0 }, "note": "免费测试阶段：官方计费 ¥0。" }
+          ],
+          "note": "小红书自家接口，按量计费，当前免费测试故费率为 ¥0 —— 这是已知的价，不是未知价（未知价应不建条目）。转正式定价后在本通道追加真实费率段。"
+        }
+      ]
     }
   ]
 }
