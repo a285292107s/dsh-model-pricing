@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.invalid/dsh-model-pricing/provider_pricing.schema.json",
   "title": "Provider pricing override layer for dsh-model-pricing",
-  "description": "Per-provider (billing-channel) pricing over the model base table, WITH a time dimension. Each entry resolves to one of: (a) a reference to a base-table model whose full price history is inherited (the channel tracks the official/vendor price, including past price changes), or (b) an explicit timeline of [from, to) rate segments (the channel has its own price history, e.g. a relay or an unknown model the user prices by hand). Billing nature belongs to the CHANNEL (`providers[].billing`) and is the default for every entry of that channel; an entry may override it. This keeps REAL metered spend apart from SUBSCRIPTION value.",
+  "description": "Per-provider (billing-channel) pricing over the model base table, WITH a time dimension. Each channel declares its FORM (`providers[].form`: official / relay / subscription / wrapper) and, unless it is a wrapper, a billing nature plus a list of entries. Each entry resolves to one of: (a) a reference to a base-table model whose full price history is inherited (the channel tracks the official/vendor price, including past price changes), or (b) an explicit timeline of [from, to) rate segments (the channel has its own price history, e.g. a relay or an unknown model the user prices by hand). Billing nature belongs to the CHANNEL (`providers[].billing`) and is the default for every entry of that channel; an entry may override it. This keeps REAL metered spend apart from SUBSCRIPTION value. A WRAPPER is a plugin-minted synthetic twin of another route: it names that route in `aliasOf` and carries no billing and no entries of its own — it inherits both, and is never priced separately.",
   "type": "object",
   "additionalProperties": false,
   "required": ["version", "updatedAt", "currency", "providers"],
@@ -15,17 +15,26 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["provider", "billing", "entries"],
+        "required": ["provider", "form"],
         "properties": {
           "provider": {
             "type": "string",
-            "description": "Provider route key as recorded in the ledger (e.g. deepseek-official, opencode-go, commandcode, zai, staryears). A plugin-minted wrapper id (modlens-commandcode, deepseek-modlens) is a synthetic twin of the route it wraps, not a channel of its own: same operator, same billing class, same inherited base."
+            "description": "Provider route key as recorded in the ledger (e.g. deepseek-official, opencode-go, commandcode, zai, staryears). A plugin-minted wrapper id (modlens-commandcode, deepseek-modlens) is a synthetic twin of the route it wraps, not a channel of its own: same operator, same billing class, same inherited base — declared with `form: wrapper` + `aliasOf`."
           },
           "label": { "type": "string", "description": "Display name of the channel." },
+          "form": {
+            "type": "string",
+            "enum": ["official", "relay", "subscription", "wrapper"],
+            "description": "How this channel is operated and priced. official: the vendor's own metered API (the channel operator IS the model vendor). relay: a third party's metered channel priced at its own rate, possibly marked up. subscription: model access bundled in a plan, not billed per token. wrapper: a client plugin's synthetic twin of another route in this feed — it never prices anything itself. Display metadata for consumers (grouping/annotation); the pricing rule that rides on it is only that a wrapper carries no entries."
+          },
           "billing": {
             "type": "string",
             "enum": ["metered", "subscription"],
-            "description": "The CHANNEL's billing nature, the default for every entry below. metered: a REAL per-token spend (official API or relay/reseller at its own rate). subscription: included in a plan — the value it creates equals the metered-equivalent rates, NOT actual spend. Consumers must keep these apart when summing."
+            "description": "The CHANNEL's billing nature, the default for every entry below. metered: a REAL per-token spend (official API or relay/reseller at its own rate). subscription: included in a plan — the value it creates equals the metered-equivalent rates, NOT actual spend. Consumers must keep these apart when summing. Absent on a wrapper, which inherits its target's nature."
+          },
+          "aliasOf": {
+            "type": "string",
+            "description": "The channel this wrapper is a synthetic twin of. Its entries, billing nature and label are inherited wholesale, so a vendor price change still needs one edit only. Only for form: wrapper; the target must be a non-wrapper channel of this same feed. Consumers materialize it as a one-hop route alias (the wrapper's own entries, if a consumer's hand layer adds any, still win)."
           },
           "entries": {
             "type": "array",
@@ -85,7 +94,23 @@
               ]
             }
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "form": { "const": "wrapper" } },
+              "required": ["form"]
+            },
+            "then": {
+              "required": ["aliasOf"],
+              "not": { "anyOf": [{ "required": ["billing"] }, { "required": ["entries"] }] }
+            },
+            "else": {
+              "required": ["billing", "entries"],
+              "not": { "required": ["aliasOf"] }
+            }
+          }
+        ]
       }
     }
   }

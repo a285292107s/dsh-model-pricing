@@ -4,8 +4,9 @@ dsh-model-pricing 是 dsh-tokbook 记账本的**自托管价格镜像**,带显�
 (计费通道)维度:同一模型经不同通道可以按量计费或属于订阅。仓库维护两层数据 ——
 `model_pricing.json`(模型基础价目表:照抄上游社区 feed,含每个模型的 `timeRules`
 调价史、context 档位等)与 `provider_pricing.json`(per-provider 覆盖层:每个 provider 组
-携带**通道级** `billing` 计费类别,条目 `inheritBase` 跟随基础表某模型的完整价格史,
-或用 `segments[]` 表达通道自己的时间线)。
+携带**通道级** `form` 运行形态(official / relay / subscription / wrapper)与 `billing`
+计费类别,条目 `inheritBase` 跟随基础表某模型的完整价格史,或用 `segments[]` 表达通道自己
+的时间线;包装路由只写 `form: wrapper` + `aliasOf`,不写 billing 与条目)。
 
 本文件让 agent 的行为与本仓库的实际运作方式对齐。更具体的指示优先;动手前先读
 README 与本文件提到的文件。
@@ -67,10 +68,11 @@ segments 顺序与首段/末段铺满、`inheritBase` 目标是否能在基础�
   字符串**——可能带 provider 前缀(如 `deepseek/deepseek-v4-flash`),基础表本身
   匹配不了。改 key/字符串前先核对 dsh-tokbook 账本里的真实记录。
 - **`modlens-*`（含 `deepseek-modlens`）是包装 id，不是独立通道**：客户端插件给上游路由
-  mint 的合成孪生——同上游通道方、同 `billing`、同 `inheritBase` 目标，绝不单独定价；
-  只要账本里还有该 id 的记录就保留条目（丢了会让那些历史调用变成价格未知）。镜像层没有
-  route alias 字段，包装路由靠**复制上游条目**表达；条目多到复制不划算时再考虑加别名字段
-  （需消费方配合）。术语界定见 README 的「术语」一节。
+  mint 的合成孪生——同上游通道方、同 `billing`、同条目，绝不单独定价。表达方式是
+  `"form": "wrapper"` + `"aliasOf": "<被包装通道>"`，**不写 `billing`、不写 `entries`**
+  （build 会拦）：镜像层已有 route alias，所以不再复制上游条目。只要账本里还有该 id 的
+  记录就保留该组（删了会让那些历史调用变成价格未知）；目标必须是本 feed 里的非包装通道
+  （不能包装包装），`label` 必写（没有条目可读名字）。术语界定见 README 的「术语」一节。
 - **建条目的判据是「可能在账本里出现 + 价格已知」,不是「账本已经记录过」**:价格已知 =
   有官方价可跟(`inheritBase`)**或**有通道自己的已知费率(`segments`,含**确实免费**的
   ¥0——免费是已知的价,不是未知价)。按该通道可服务的模型目录预置(订阅目录里用户随手能
@@ -84,6 +86,10 @@ segments 顺序与首段/末段铺满、`inheritBase` 目标是否能在基础�
   混合通道的覆盖(判据:同一通道内既有套餐内不按量计费的模型、又有真实按量扣费的模型;
   当前数据未使用)。`metered` = 真实按量花费(可计入实际支出);`subscription` = 订阅内的
   价值折算——**绝不可混入实际支出合计**。
+- `form` 也挂在 **provider 组**上,与 `billing` 必须一致(`subscription` ↔
+  `form: subscription`;`metered` ↔ `form: official`/`relay`),build 会拦。它是消费方
+  分组/标注用的显式形态事实——**不要**让消费方从 `billing` 或取价方式去猜官方 vs 中转
+  (猜不出来:`dots-ai` 是官方通道却用 `segments`,`staryears` 是中转却用 `inheritBase`)。
 - `note` 只写定价依据与口径(为什么这么定价、跟随哪个 id、折扣段),不写会随使用变化的
   数字(账本行数、请求数)。
 - `inheritBase` 目标必须在当前基础表(或其 aliases)解析得到,否则 build 直接抛错。

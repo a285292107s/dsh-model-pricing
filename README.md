@@ -8,7 +8,7 @@ dsh-tokbook 记账本用的**自托管价格镜像**，带显式的 **per-provid
 | 文件 | 层 | 形状 | 消费方 |
 |---|---|---|---|
 | `model_pricing.json` | **模型基础价目表**（RMB / 每百万 token） | 与上游维护的社区 feed 完全一致（`modelId` + 4 项费率 + 时间规则 / 上下文档位 / 峰谷时段 + aliases） | 只认模型 id 的既有消费方无需改动 |
-| `provider_pricing.json` | **per-provider 覆盖层** | `providers[]`（`provider`、`billing: metered\|subscription`、`entries[]`）→ 条目（`model`、`inheritBase` \| `segments`） | dsh-tokbook 按 `(provider, model)` 取价的路径 |
+| `provider_pricing.json` | **per-provider 覆盖层** | `providers[]`（`provider`、`form: official\|relay\|subscription\|wrapper`、`billing: metered\|subscription`、`aliasOf`（仅包装）、`entries[]`）→ 条目（`model`、`inheritBase` \| `segments`） | dsh-tokbook 按 `(provider, model)` 取价的路径 |
 
 `BASE_SOURCE.json` 记录当前基础价目表的来源（取自哪个本地 mirror、上游 version /
 updatedAt、构建时间）。
@@ -23,10 +23,10 @@ updatedAt、构建时间）。
 | **模型厂商**（model vendor / 上游厂商 / 模型方） | 开发并拥有模型，定义官方费率与调价史的一方 | `model_pricing.json`（基础表） |
 | **通道**（channel / provider / 计费通道） | 模型被接入并被计费的一条路径 —— `provider` route key | `provider_pricing.json` / `providers.source.json` |
 | **通道方**（channel operator） | 提供并结算这条通道路由的一方：官方通道就是厂商自己，其余是第三方 | `providers[].label` |
-| **官方通道**（official / first-party / 直连） | 厂商自营的按量 API（`deepseek-official`、`zai`） | `metered` + `inheritBase` |
-| **中转 / 转售商**（reseller / relay） | 第三方按量通道，用自己的价、可能带加价（`staryears`） | `metered`；拿到真实中转价后改 `segments[]` |
-| **订阅套餐**（subscription plan） | 模型访问被打包进套餐，调用不按 token 计费（`opencode-go`、`commandcode`） | `subscription` + `inheritBase` |
-| **包装路由**（wrapper / alias route） | 客户端插件为既有通道 mint 的合成孪生，形如 `<插件>-<provider>`（`modlens-commandcode`、`deepseek-modlens`） | 沿用被包装通道的 `billing` 类别与 `inheritBase` 目标 |
+| **官方通道**（official / first-party / 直连） | 厂商自营的按量 API（`deepseek-official`、`zai`、`dots-ai`） | `form: official`；`metered` + `inheritBase` |
+| **中转 / 转售商**（reseller / relay） | 第三方按量通道，用自己的价、可能带加价（`staryears`） | `form: relay`；`metered`；拿到真实中转价后改 `segments[]` |
+| **订阅套餐**（subscription plan） | 模型访问被打包进套餐，调用不按 token 计费（`opencode-go`、`commandcode`） | `form: subscription`；`subscription` + `inheritBase` |
+| **包装路由**（wrapper / alias route） | 客户端插件为既有通道 mint 的合成孪生，形如 `<插件>-<provider>`（`modlens-commandcode`、`deepseek-modlens`） | `form: wrapper` + `aliasOf: <被包装通道>`：billing 类别与条目全部沿用目标，绝不单独定价 |
 | **实际支出 / 订阅价值**（metered / subscription value） | 按量通道真金白银的花费 / 套餐内按官方价折算的价值（**非现金**）——求和时**绝不相加**，是两个独立数字 | `billing: metered` / `subscription` |
 | **价格未知 / 已知免费**（unpriced / known ¥0） | 两表都不知道价（**暂按 ¥0 计，不是免费**）/ 确实免费或零价，是**已知**的价，照常计为 ¥0 | 不建条目（消费方报 `unpricedModels`） / `segments[]` 里写 ¥0 |
 
@@ -90,6 +90,12 @@ provider 层的条目则解析为两种机制之一：
    看起来像免费模型。区别在于**是否知道**：确实免费（免费 deal）属于已知的 ¥0，照常建
    `segments` 条目；不知道价格才留空。
 
+上面这些约定归结为通道的一个显式事实：**`providers[].form`**（`official` / `relay` /
+`subscription` / `wrapper`）。它是给消费方看的元数据（可以按它分组、标注），同时带一条真规则
+——`form: wrapper` 的组没有自己的定价。`form` 与 `billing` 必须一致（订阅就是
+`subscription`，官方/中转就是 `metered`），build 会拦下不一致的组合，所以「形态」与
+「实际支出 / 订阅价值」不会各说各话。
+
 ### 包装路由（`modlens-*`）不是独立通道
 
 账本记录的是请求实际走过的通道，而客户端插件可以为它包装的通道 mint 自己的 id。
@@ -101,16 +107,24 @@ modlens 视觉桥就是这么做的：它把 `modlens-<provider>`（`deepseek-of
 
 对本仓库而言这意味着：
 
-- **绝不单独给包装路由定价。** 它的条目沿用被包装通道的 `billing` 类别与同一个
-  `inheritBase` 目标，于是厂商调价仍然只需改一次基础表。
+- **绝不单独给包装路由定价。** 它只声明 `aliasOf`（被包装通道），`billing` 类别与条目
+  全部沿用目标，于是厂商调价仍然只需改一次基础表。**结构上就无法定价**：包装组既不写
+  `billing` 也不写 `entries`（build 校验会拦）。
 - **只要账本里还有该 id 的记录，就保留条目。** 消费方按 route key 解析
-  `(provider, model)`，删掉条目会让那些历史调用变成*价格未知*。
+  `(provider, model)`，删掉包装组会让那些历史调用变成*价格未知*。
 - **包装 id 是来源标记，不是另一笔购买。** 它证明这次调用走的是它的上游通道，本身不会
   引入第二笔费用。
+- **计费性质跟着目标的条目走。** 包装路由的 `billing` 来自被包装通道的条目，所以目标
+  通道有哪些 `(provider, model)` 条目，包装路由就跟到哪些；目标没有条目的串会回落到
+  基础表（按量），这也是「按通道可服务的模型目录预置条目」同样适用于包装目标的原因。
 
-镜像层**没有** route alias 字段（消费方手工层的「同价通道」`$routes` 别名只存在于它自己的手工覆盖
-层），所以包装路由目前靠**复制上游条目**来表达。当某个包装路由需要镜像的条目多到复制不再
-划算时，才值得考虑在镜像层引入别名字段 —— 那需要消费方配合，属于跨仓库改动。
+镜像层**有** route alias 字段：包装路由就是 `{ "provider": "modlens-commandcode",
+"label": "…", "form": "wrapper", "aliasOf": "commandcode" }`——一行，不复制上游条目，
+新插件 mint 一个新孪生时只需在这里加一行（`modlens-<provider>` 对每个 provider 都可能
+出现，冷门的等真的出现在账本里再加，别提前铺）。消费方（dsh-tokbook）把它物化成一条
+一跳别名：继承目标的**全部**条目，包装路由自己的条目（如果消费方手工层写了）仍然优先；
+消费方手工层的「同价通道」`$routes` 是另一件事——那是用户本地的同款套餐多份路由，
+与镜像的 wrapper 走同一条物化路径，但归属不同。
 
 ## 目录结构
 
@@ -127,8 +141,9 @@ BASE_SOURCE.json            当前基础表的来源记录
 
 ## 维护
 
-所有定价事实的编辑都发生在 **`providers.source.json`**（通道清单：哪个
-`(provider, model)` 是 metered/subscription，以及任何通道专属费率）。重新生成产物：
+所有定价事实的编辑都发生在 **`providers.source.json`**（通道清单：每个通道的形态
+`form`、哪个 `(provider, model)` 是 metered/subscription，以及任何通道专属费率；
+包装路由只写 `form: wrapper` + `aliasOf`）。重新生成产物：
 
 ```sh
 node scripts/build.mjs                     # 用 $DSH_HOME/tokbook/pricing.ccsa.json
@@ -145,11 +160,18 @@ node scripts/build.mjs /path/to/pricing.ccsa.json   # 或指定某个 mirror
   金额一律是 RMB / 每百万 token。
 - `provider_pricing.json`：见 `provider_pricing.schema.json`。核心规则：
   - `providers[].provider` 必须匹配**账本里记录的** provider route key
-    （`deepseek-official`、`opencode-go`、`commandcode`、`modlens-commandcode`、`zai`、
-    `staryears`、`dots-ai`、…）。
+    （`deepseek-official`、`opencode-go`、`commandcode`、`modlens-commandcode`、
+    `deepseek-modlens`、`zai`、`staryears`、`dots-ai`、…）。
+  - `providers[].form` 是**通道的**运行形态：`official` / `relay` / `subscription` /
+    `wrapper`。消费方拿它分组与标注；唯一的定价规则是包装路由没有自己的条目。`form` 与
+    `billing` 必须一致（`subscription` ↔ `form: subscription`，`metered` ↔
+    `official`/`relay`），build 会拦。
   - `providers[].billing` 是**通道的**计费性质，作用于其全部条目；条目级 `billing` 为
     混合通道提供覆盖。`metered` = 实际支出，`subscription` = 按解析出的费率折算的套餐
-    价值（永远不是实际支出）。
+    价值（永远不是实际支出）。包装组**不写** `billing`：它沿用 `aliasOf` 目标的。
+  - `providers[].aliasOf`（仅 `form: wrapper`）是被包装的通道：消费方把它物化成一条一跳
+    别名，继承该目标的全部条目与计费性质。目标必须是本 feed 里的非包装通道（不能包装
+    包装），包装组**不写** `entries` —— build 会拦。
   - `entries[].model` 是**该 provider 下记录的确切模型字符串** —— 可能带 provider 前缀
     （如 `deepseek/deepseek-v4-flash`），这是基础表单独匹配不了的。
   - `inheritBase: <modelId>`（跟随基础表该模型的完整价格史）与 `segments[]`（通道自己的
@@ -183,6 +205,9 @@ plugins:
       调价史占位（`placeholder: true`），价格未知的字符串不建条目（由消费方报为价格未知）
 - [x] 时间维度：provider 条目要么跟随基础表的 `timeRules` 调价史，要么自带显式
       `segments` 时间线 —— 厂商调价后无需逐通道重编即可重算历史
+- [x] 通道形态 `providers[].form`（official / relay / subscription / wrapper）与镜像层
+      别名 `providers[].aliasOf`：包装路由读作一行别名，不再复制被包装通道的条目目录；
+      消费方按 `form` 分组/标注，并按一跳别名物化价格
 - [x] dsh-tokbook 消费方按 `(provider, model)` provider 优先解析，按每条记录的时间戳
       跟随 `inheritBase`/`segments` 时间线，并且在求和时把 `metered`（实际支出）与
       `subscription`（套餐价值）分开 —— 成本界面把两者显示为两个独立数字

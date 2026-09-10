@@ -9,8 +9,11 @@
 //                                  stays usable by existing model-only consumers.
 //   2. provider_pricing.json     — the per-provider override layer, compiled
 //                                  from providers.source.json (the hand-edited
-//                                  fact list: which channels bill metered vs.
-//                                  subscription, and any channel-specific rate).
+//                                  fact list: each channel's form, which
+//                                  channels bill metered vs. subscription, and
+//                                  any channel-specific rate). A wrapper channel
+//                                  compiles to `form + aliasOf` alone — it
+//                                  inherits its target's billing and entries.
 //
 // Usage: node scripts/build.mjs [path-to-pricing.ccsa.json]
 //   (defaults to $DSH_HOME/tokbook/pricing.ccsa.json or ~/.dsh/tokbook/…)
@@ -81,17 +84,46 @@ async function loadProviderSource() {
 
 // Light validation of the source fact list: shape, required fields, enum,
 // mutual exclusion, and the segment tiling invariants.
+const CHANNEL_FORMS = ['official', 'relay', 'subscription', 'wrapper']
+
 function validateProviderSource(source) {
   const problems = []
   if (!Array.isArray(source.providers)) problems.push('providers must be an array')
   const seen = new Set()
+  const byProvider = new Map()
   for (const provider of source.providers) {
     if (typeof provider.provider !== 'string' || provider.provider === '') {
       problems.push('every provider needs a non-empty "provider" key')
       continue
     }
+    byProvider.set(provider.provider, provider)
+    if (!CHANNEL_FORMS.includes(provider.form)) {
+      problems.push(`${provider.provider}: form must be ${CHANNEL_FORMS.join('|')} (how the channel is operated)`)
+    }
+    if (provider.form === 'wrapper') {
+      // A wrapper is a plugin-minted synthetic twin: it names the route it
+      // wraps and carries nothing of its own — no billing, no entries.
+      if (typeof provider.aliasOf !== 'string' || provider.aliasOf === '') {
+        problems.push(`${provider.provider}: a wrapper needs aliasOf (the channel it is a twin of)`)
+      } else if (provider.aliasOf === provider.provider) {
+        problems.push(`${provider.provider}: cannot wrap itself`)
+      }
+      if (provider.billing !== undefined) problems.push(`${provider.provider}: a wrapper must not carry billing (it inherits its target's)`)
+      if (provider.entries !== undefined) problems.push(`${provider.provider}: a wrapper must not carry entries (it inherits its target's)`)
+      if (provider.aliasOf !== undefined && provider.label === undefined) problems.push(`${provider.provider}: a wrapper needs a label (it has no entries to read a name from)`)
+      continue
+    }
+    if (provider.aliasOf !== undefined) problems.push(`${provider.provider}: aliasOf is only for form: wrapper`)
     if (provider.billing !== 'metered' && provider.billing !== 'subscription') {
       problems.push(`${provider.provider}: billing must be metered|subscription (the channel's billing nature)`)
+    }
+    // The two facts must agree: a plan channel bills as a subscription, a
+    // metered channel (official or relay) is real spend.
+    if (provider.form === 'subscription' && provider.billing !== 'subscription') {
+      problems.push(`${provider.provider}: form subscription needs billing subscription`)
+    }
+    if ((provider.form === 'official' || provider.form === 'relay') && provider.billing !== 'metered') {
+      problems.push(`${provider.provider}: form ${provider.form} needs billing metered`)
     }
     if (!Array.isArray(provider.entries)) {
       problems.push(`${provider.provider}: entries must be an array`)
@@ -144,6 +176,15 @@ function validateProviderSource(source) {
       }
     }
   }
+  // Wrapper targets resolve in a second pass: the twin may be declared before
+  // the channel it wraps. One hop only — a wrapper of a wrapper has no meaning
+  // (nothing to inherit), so a chain is refused rather than flattened.
+  for (const provider of source.providers) {
+    if (provider.form !== 'wrapper' || typeof provider.aliasOf !== 'string' || provider.aliasOf === '') continue
+    const target = byProvider.get(provider.aliasOf)
+    if (target === undefined) problems.push(`${provider.provider}: aliasOf "${provider.aliasOf}" is not a channel in this feed`)
+    else if (target.form === 'wrapper') problems.push(`${provider.provider}: aliasOf "${provider.aliasOf}" is itself a wrapper (only one hop)`)
+  }
   return problems
 }
 
@@ -192,37 +233,48 @@ async function main() {
     version: source.version,
     updatedAt: nowUnix(),
     currency: 'RMB',
-    providers: source.providers.map((p) => ({
-      provider: p.provider,
-      ...(p.label !== undefined ? { label: p.label } : {}),
-      // Billing is a CHANNEL property: the group carries the nature, an entry
-      // only overrides it for a mixed channel.
-      billing: p.billing,
-      entries: p.entries.map((e) => {
-        const out = { model: e.model }
-        if (e.billing !== undefined) out.billing = e.billing
-        if (typeof e.inheritBase === 'string' && e.inheritBase !== '') {
-          const target = lookup.resolve(e.inheritBase)
-          if (target === undefined) {
-            throw new Error(`${p.provider}/${e.model}: inheritBase "${e.inheritBase}" not found in the base table`)
+    providers: source.providers.map((p) => {
+      const head = {
+        provider: p.provider,
+        ...(p.label !== undefined ? { label: p.label } : {}),
+        form: p.form,
+      }
+      // A wrapper prices nothing of its own: it names the route it is a twin of
+      // and inherits that route's billing nature and entries wholesale, so a
+      // vendor price change still needs one edit only (and a new plugin-minted
+      // twin costs one line here, not a copy of the target's catalogue).
+      if (p.form === 'wrapper') return { ...head, aliasOf: p.aliasOf }
+      return {
+        ...head,
+        // Billing is a CHANNEL property: the group carries the nature, an entry
+        // only overrides it for a mixed channel.
+        billing: p.billing,
+        entries: p.entries.map((e) => {
+          const out = { model: e.model }
+          if (e.billing !== undefined) out.billing = e.billing
+          if (typeof e.inheritBase === 'string' && e.inheritBase !== '') {
+            const target = lookup.resolve(e.inheritBase)
+            if (target === undefined) {
+              throw new Error(`${p.provider}/${e.model}: inheritBase "${e.inheritBase}" not found in the base table`)
+            }
+            out.inheritBase = e.inheritBase
+            if (e.placeholder === true) out.placeholder = true
+          } else if (Array.isArray(e.segments) && e.segments.length > 0) {
+            out.segments = e.segments.map((s) => {
+              const seg = { rate: s.rate }
+              if (s.from !== undefined) seg.from = s.from
+              if (s.to !== undefined) seg.to = s.to
+              if (s.note !== undefined && s.note !== '') seg.note = s.note
+              return seg
+            })
+          } else {
+            throw new Error(`${p.provider}/${e.model}: needs inheritBase or segments`)
           }
-          out.inheritBase = e.inheritBase
-          if (e.placeholder === true) out.placeholder = true
-        } else if (Array.isArray(e.segments) && e.segments.length > 0) {
-          out.segments = e.segments.map((s) => {
-            const seg = { rate: s.rate }
-            if (s.from !== undefined) seg.from = s.from
-            if (s.to !== undefined) seg.to = s.to
-            if (s.note !== undefined && s.note !== '') seg.note = s.note
-            return seg
-          })
-        } else {
-          throw new Error(`${p.provider}/${e.model}: needs inheritBase or segments`)
-        }
-        if (e.note !== undefined && e.note !== '') out.note = e.note
-        return out
-      }),
-    })),
+          if (e.note !== undefined && e.note !== '') out.note = e.note
+          return out
+        }),
+      }
+    }),
   }
   const providerPath = join(root, 'provider_pricing.json')
   const providerPrev = await readJsonIfExists(providerPath)

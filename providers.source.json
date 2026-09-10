@@ -1,9 +1,10 @@
 {
-  "version": 5,
+  "version": 6,
   "providers": [
     {
       "provider": "deepseek-official",
       "label": "DeepSeek 官方 API",
+      "form": "official",
       "billing": "metered",
       "entries": [
         {
@@ -26,6 +27,7 @@
     {
       "provider": "opencode-go",
       "label": "OpenCode Go 订阅",
+      "form": "subscription",
       "billing": "subscription",
       "entries": [
         {
@@ -58,6 +60,7 @@
     {
       "provider": "commandcode",
       "label": "Command Code GOAT 订阅",
+      "form": "subscription",
       "billing": "subscription",
       "entries": [
         {
@@ -274,18 +277,19 @@
     {
       "provider": "modlens-commandcode",
       "label": "Command Code（modlens 包装）",
-      "billing": "subscription",
-      "entries": [
-        {
-          "model": "deepseek/deepseek-v4-flash",
-          "inheritBase": "deepseek-v4-flash",
-          "note": "modlens 插件给 commandcode 通道 mint 的包装 id：同一通道、同一订阅，仅记录 id 不同，故计费类别与 inheritBase 目标都与 commandcode 一致，不单独定价。串带 provider 前缀，基础表匹配不到，故显式声明。"
-        }
-      ]
+      "form": "wrapper",
+      "aliasOf": "commandcode"
+    },
+    {
+      "provider": "deepseek-modlens",
+      "label": "DeepSeek 官方 API（modlens 包装）",
+      "form": "wrapper",
+      "aliasOf": "deepseek-official"
     },
     {
       "provider": "zai",
       "label": "Z.ai（智谱直连）",
+      "form": "official",
       "billing": "metered",
       "entries": [
         {
@@ -298,6 +302,7 @@
     {
       "provider": "staryears",
       "label": "StarYears 中转",
+      "form": "relay",
       "billing": "metered",
       "entries": [
         {
@@ -317,6 +322,7 @@
     {
       "provider": "dots-ai",
       "label": "小红书（dots-ai）",
+      "form": "official",
       "billing": "metered",
       "entries": [
         {
