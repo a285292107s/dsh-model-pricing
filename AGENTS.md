@@ -53,7 +53,7 @@ segments 顺序与首段/末段铺满、`inheritBase` 目标是否能在基础�
   由 build 重写。不要手改——会被下次 build 覆盖;但**要随改动一起提交**,因为本仓库
   即分发渠道,消费方经 raw URL 从这里拉取(这与 dsh-tokbook 的 `lib/` 相反)。
 - 基础价目表**零发明**:逐字拷贝自本地 tokbook mirror,保留上游 `version` /
-  `updatedAt` 原样(消费方靠它们决定是否重新拉取)。厂商调价 = 重新同步 tokbook
+  `updatedAt` 原样(消费方靠它们决定是否重新拉取)。模型厂商调价 = 重新同步 tokbook
   mirror 后重跑 build;脚本本身不造数、不联网。
 - 改语义(条目机制、计费类别、字段)时,把三处一起改:build 里的校验/编译逻辑、
   `provider_pricing.schema.json`、`providers.source.json` 的 `version`(整数递增)。
@@ -66,27 +66,40 @@ segments 顺序与首段/末段铺满、`inheritBase` 目标是否能在基础�
   `modlens-commandcode`、…);`entries[].model` 是**该 provider 下记录的确切模型
   字符串**——可能带 provider 前缀(如 `deepseek/deepseek-v4-flash`),基础表本身
   匹配不了。改 key/字符串前先核对 dsh-tokbook 账本里的真实记录。
+- **`modlens-*`（含 `deepseek-modlens`）是包装 id，不是独立通道**：客户端插件给上游路由
+  mint 的合成孪生——同上游 operator、同 `billing`、同 `inheritBase` 目标，绝不单独定价；
+  只要账本里还有该 id 的记录就保留条目（丢了会让那些历史调用变成未定价）。镜像层没有
+  route alias 字段，包装路由靠**复制上游条目**表达；条目多到复制不划算时再考虑加别名字段
+  （需消费方配合）。术语界定见 README 的「术语」一节。
+- **建条目的判据是「可能在账本里出现 + 价格已知」,不是「账本已经记录过」**:价格已知 =
+  有官方价可跟(`inheritBase`)**或**有通道自己的已知费率(`segments`,含**确实免费**的
+  ¥0——免费是已知的价,不是未知价)。按该通道可服务的模型目录预置(订阅目录里用户随手能
+  选到的模型也要有,否则一换模型就被报未定价),同时覆盖账本已记录的确切串。价格**未知**的
+  串不建条目(让消费方报未定价,好过用 ¥0 伪装免费)。
 - 每条 entry 二选一(互斥,校验会拦):`inheritBase: <modelId>`(跟随基础表该模型的
   **完整**价格史——官方通道、按官方价折算的订阅通道、placeholder 中继都用它)或
   `segments[]`(通道自带时间线:首段从 0 起、末段开放式,build 强制;只支持平铺价,
   峰谷/上下文档位表达不了——那类通道用 `inheritBase`)。
 - `billing` 挂在 **provider 组**上(通道属性,覆盖其全部条目);条目级 `billing` 只用于
-  混合通道的覆盖。`metered` = 真实按量花费(可计入实际支出);`subscription` = 订阅内的
+  混合通道的覆盖(判据:同一通道内既有套餐内不按量计费的模型、又有真实按量扣费的模型;
+  当前数据未使用)。`metered` = 真实按量花费(可计入实际支出);`subscription` = 订阅内的
   价值折算——**绝不可混入实际支出合计**。
+- `note` 只写定价依据与口径(为什么这么定价、跟随哪个 id、折扣段),不写会随使用变化的
+  数字(账本行数、请求数)。
 - `inheritBase` 目标必须在当前基础表(或其 aliases)解析得到,否则 build 直接抛错。
-  全新/未知模型字符串**不建条目**:消费方会把它列为未定价(¥0),比一条 ¥0 `segments`
-  更诚实(后者看起来像免费模型)。知道真实价格史后再新增该 provider 组 + `segments`。
 
 ## 背景文档
 
-- `README.md` — 端到端范围、双层结构、schema 要点、维护与接入方式。最先读它。
+- `README.md` — 端到端范围、双层结构、术语界定(模型厂商 vs 通道方、包装 id)、schema
+  要点、维护与接入方式。最先读它。
 - `provider_pricing.schema.json` — provider 层输出结构的权威 schema。
 - 上游基础价目表的 schema:见 LaoYueHanNi/model-price-table 的 README。
 - 消费方 `dsh-tokbook`(Desktop 下的兄弟仓库)——provider key、model 字符串与计费
   语义必须和它的账本记录对齐。
 
-本仓库 README 与 schema 用英文书写、`providers.source.json` 的 note 用中文;跟随
-每个文件既有的语言,不混写。文档会过时——与代码冲突时以代码为准并修文档。
+本仓库 README 与 `providers.source.json` 的 note 用中文(主要用户是中文用户);
+`provider_pricing.schema.json` 用英文(机器可读产物的描述)。跟随每个文件既有的语言,
+不混写。文档会过时——与代码冲突时以代码为准并修文档。
 
 ## 保持本文件精简
 

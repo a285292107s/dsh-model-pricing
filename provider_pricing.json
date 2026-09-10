@@ -1,8 +1,7 @@
 {
-  "version": 4,
-  "updatedAt": 1788943892,
+  "version": 5,
+  "updatedAt": 1789009413,
   "currency": "RMB",
-  "usdExchangeRate": 7,
   "providers": [
     {
       "provider": "deepseek-official",
@@ -290,13 +289,13 @@
     },
     {
       "provider": "modlens-commandcode",
-      "label": "modlens 经 Command Code",
+      "label": "Command Code（modlens 包装）",
       "billing": "subscription",
       "entries": [
         {
           "model": "deepseek/deepseek-v4-flash",
           "inheritBase": "deepseek-v4-flash",
-          "note": "前缀串，行数少（15）；价值按官方折算。"
+          "note": "modlens 插件给 commandcode 通道 mint 的包装 id：同一通道、同一订阅，仅记录 id 不同，故计费类别与 inheritBase 目标都与 commandcode 一致，不单独定价。串带 provider 前缀，基础表匹配不到，故显式声明。"
         }
       ]
     },

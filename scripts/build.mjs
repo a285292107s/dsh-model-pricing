@@ -192,7 +192,6 @@ async function main() {
     version: source.version,
     updatedAt: nowUnix(),
     currency: 'RMB',
-    usdExchangeRate: base.usdExchangeRate ?? 7,
     providers: source.providers.map((p) => ({
       provider: p.provider,
       ...(p.label !== undefined ? { label: p.label } : {}),

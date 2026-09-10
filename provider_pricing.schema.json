@@ -9,8 +9,7 @@
   "properties": {
     "version": { "type": "integer", "description": "Bump when pricing semantics change; consumers re-fetch on change." },
     "updatedAt": { "type": "integer", "description": "Unix seconds of the last content change (a no-op rebuild keeps it)." },
-    "currency": { "const": "RMB", "description": "All amounts are RMB per million tokens. Required: consumers reject a feed that is not RMB." },
-    "usdExchangeRate": { "type": "number", "description": "RMB per USD, copied from the base table for display of USD-denominated plans." },
+    "currency": { "const": "RMB", "description": "All amounts are RMB per million tokens. Required: consumers reject a feed that is not RMB. The USD rate is NOT carried here: it is the base table's single source of truth." },
     "providers": {
       "type": "array",
       "items": {
@@ -20,7 +19,7 @@
         "properties": {
           "provider": {
             "type": "string",
-            "description": "Provider route key as recorded in the ledger (e.g. deepseek-official, opencode-go, commandcode, zai, staryears)."
+            "description": "Provider route key as recorded in the ledger (e.g. deepseek-official, opencode-go, commandcode, zai, staryears). A plugin-minted wrapper id (modlens-commandcode, deepseek-modlens) is a synthetic twin of the route it wraps, not a channel of its own: same operator, same billing class, same inherited base."
           },
           "label": { "type": "string", "description": "Display name of the channel." },
           "billing": {
