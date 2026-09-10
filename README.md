@@ -27,6 +27,8 @@ updatedAt、构建时间）。
 | **中转 / 转售商**（reseller / relay） | 第三方按量通道，用自己的价、可能带加价（`staryears`） | `metered`；拿到真实中转价后改 `segments[]` |
 | **订阅套餐**（subscription plan） | 模型访问被打包进套餐，调用不按 token 计费（`opencode-go`、`commandcode`） | `subscription` + `inheritBase` |
 | **包装路由**（wrapper / alias route） | 客户端插件为既有通道 mint 的合成孪生，形如 `<插件>-<provider>`（`modlens-commandcode`、`deepseek-modlens`） | 沿用被包装通道的 `billing` 类别与 `inheritBase` 目标 |
+| **实际支出 / 订阅价值**（metered / subscription value） | 按量通道真金白银的花费 / 套餐内按官方价折算的价值（**非现金**）——求和时**绝不相加**，是两个独立数字 | `billing: metered` / `subscription` |
+| **价格未知 / 已知免费**（unpriced / known ¥0） | 两表都不知道价（**暂按 ¥0 计，不是免费**）/ 确实免费或零价，是**已知**的价，照常计为 ¥0 | 不建条目（消费方报 `unpricedModels`） / `segments[]` 里写 ¥0 |
 
 由此有两条必须守住的结论：
 
@@ -77,13 +79,13 @@ provider 层的条目则解析为两种机制之一：
 构建会自动解析四种来源约定：
 
 1. **官方/直连通道**（`deepseek-official`、`zai`、…）—— `metered` + `inheritBase`：
-   按官方价真实支出，并跟随其调价史。
+   按官方价实际支出，并跟随其调价史。
 2. **中转/转售通道**（`staryears`、…）—— `metered`，当前是 `inheritBase` 且
    `placeholder: true`（按官方价占位）。要填中转的**真实**价格史，就把 `inheritBase`
    换成 `segments[]`（每段带中转自己的费率）。
 3. **订阅通道**（`opencode-go`、`commandcode`、…）—— `subscription` + `inheritBase`：
    它们创造的价值就是官方价（跟随其调价史），永远不是实际支出。
-4. **价格未知的模型字符串** —— **完全不建条目**。消费方会把它报为*未定价*（¥0，列进它的
+4. **价格未知的模型字符串** —— **完全不建条目**。消费方会把它报为*价格未知*（¥0，列进它的
    `unpricedModels`），这才是诚实表达「不知道价格」；用一条 ¥0 的 `segments` 冒充，则
    看起来像免费模型。区别在于**是否知道**：确实免费（免费 deal）属于已知的 ¥0，照常建
    `segments` 条目；不知道价格才留空。
@@ -102,11 +104,11 @@ modlens 视觉桥就是这么做的：它把 `modlens-<provider>`（`deepseek-of
 - **绝不单独给包装路由定价。** 它的条目沿用被包装通道的 `billing` 类别与同一个
   `inheritBase` 目标，于是厂商调价仍然只需改一次基础表。
 - **只要账本里还有该 id 的记录，就保留条目。** 消费方按 route key 解析
-  `(provider, model)`，删掉条目会让那些历史调用变成*未定价*。
+  `(provider, model)`，删掉条目会让那些历史调用变成*价格未知*。
 - **包装 id 是来源标记，不是另一笔购买。** 它证明这次调用走的是它的上游通道，本身不会
   引入第二笔费用。
 
-镜像层**没有** route alias 字段（消费方的 route→canonical 别名只存在于它自己的手工覆盖
+镜像层**没有** route alias 字段（消费方手工层的「同价通道」`$routes` 别名只存在于它自己的手工覆盖
 层），所以包装路由目前靠**复制上游条目**来表达。当某个包装路由需要镜像的条目多到复制不再
 划算时，才值得考虑在镜像层引入别名字段 —— 那需要消费方配合，属于跨仓库改动。
 
@@ -146,7 +148,7 @@ node scripts/build.mjs /path/to/pricing.ccsa.json   # 或指定某个 mirror
     （`deepseek-official`、`opencode-go`、`commandcode`、`modlens-commandcode`、`zai`、
     `staryears`、`dots-ai`、…）。
   - `providers[].billing` 是**通道的**计费性质，作用于其全部条目；条目级 `billing` 为
-    混合通道提供覆盖。`metered` = 真实支出，`subscription` = 按解析出的费率折算的套餐
+    混合通道提供覆盖。`metered` = 实际支出，`subscription` = 按解析出的费率折算的套餐
     价值（永远不是实际支出）。
   - `entries[].model` 是**该 provider 下记录的确切模型字符串** —— 可能带 provider 前缀
     （如 `deepseek/deepseek-v4-flash`），这是基础表单独匹配不了的。
@@ -175,10 +177,10 @@ plugins:
 - [x] 仓库 + 双层结构、schema、生成器、来源记录
 - [x] 基础表逐字取自当前已同步的 mirror（185 个模型）
 - [x] provider 层按**各通道可服务的模型目录**预置条目（账本尚未记录的也预置 —— 用户随时
-      可能切到某个模型，不预置就会立刻显示成未定价），并覆盖账本里已记录的确切
+      可能切到某个模型，不预置就会立刻显示成价格未知），并覆盖账本里已记录的确切
       `(provider, model)` 串：官方/直连通道跟随官方调价史（`inheritBase`），订阅通道按
       官方调价史折算价值（通道 `billing: subscription` + `inheritBase`），中转通道按官方
-      调价史占位（`placeholder: true`），价格未知的字符串不建条目（由消费方报为未定价）
+      调价史占位（`placeholder: true`），价格未知的字符串不建条目（由消费方报为价格未知）
 - [x] 时间维度：provider 条目要么跟随基础表的 `timeRules` 调价史，要么自带显式
       `segments` 时间线 —— 厂商调价后无需逐通道重编即可重算历史
 - [x] dsh-tokbook 消费方按 `(provider, model)` provider 优先解析，按每条记录的时间戳
